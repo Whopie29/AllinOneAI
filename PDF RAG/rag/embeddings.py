@@ -1,13 +1,24 @@
 """Embeddings and FAISS vector store management."""
+import os
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
-
 
 _EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
 def get_embeddings():
-    return HuggingFaceEmbeddings(model_name=_EMBED_MODEL)
+    # Check if a Hugging Face API key is configured in env
+    hf_token = os.environ.get("HUGGINGFACE_API_KEY") or os.environ.get("HF_TOKEN")
+    if hf_token:
+        # Runs embeddings in the cloud (0MB local RAM required)
+        from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+        return HuggingFaceInferenceAPIEmbeddings(
+            api_key=hf_token,
+            model_name=_EMBED_MODEL
+        )
+    else:
+        # Fallback to local model execution
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+        return HuggingFaceEmbeddings(model_name=_EMBED_MODEL)
 
 
 def build_vectorstore(chunks):

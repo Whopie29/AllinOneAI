@@ -539,6 +539,37 @@ def api_rag_action():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/debug/imports')
+def api_debug_imports():
+    import sys
+    import traceback
+    report = {
+        "python_version": sys.version,
+        "sys_path": sys.path,
+    }
+    
+    # Try importing sentence_transformers
+    try:
+        import sentence_transformers
+        report["sentence_transformers"] = "Import successful!"
+    except BaseException as e:
+        report["sentence_transformers"] = {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        
+    # Try importing torch
+    try:
+        import torch
+        report["torch"] = f"Import successful! version: {torch.__version__}"
+    except BaseException as e:
+        report["torch"] = {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        
+    return jsonify(report)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

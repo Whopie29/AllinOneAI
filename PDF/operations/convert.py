@@ -77,10 +77,39 @@ def pdf_to_ppt(input_path: str, output_path: str, dpi: int = 150) -> str:
 # X → PDF
 # ---------------------------------------------------------------------------
 
+import platform
+import subprocess
+
+def linux_convert_to_pdf(input_path: str, output_path: str) -> str:
+    """Convert DOCX/PPTX to PDF using headless LibreOffice on Linux."""
+    out_dir = os.path.dirname(output_path)
+    cmd = [
+        "libreoffice",
+        "--headless",
+        "--convert-to",
+        "pdf",
+        "--outdir",
+        out_dir,
+        input_path
+    ]
+    subprocess.run(cmd, check=True)
+    
+    input_basename = os.path.splitext(os.path.basename(input_path))[0]
+    expected_out = os.path.join(out_dir, f"{input_basename}.pdf")
+    if os.path.exists(expected_out) and expected_out != output_path:
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        os.rename(expected_out, output_path)
+    return output_path
+
+
 def word_to_pdf(input_path: str, output_path: str) -> str:
-    """Convert DOCX to PDF using docx2pdf (requires MS Word on Windows)."""
-    from docx2pdf import convert
-    convert(input_path, output_path)
+    """Convert DOCX to PDF (requires MS Word on Windows, LibreOffice on Linux)."""
+    if platform.system() == "Windows":
+        from docx2pdf import convert
+        convert(input_path, output_path)
+    else:
+        linux_convert_to_pdf(input_path, output_path)
     return output_path
 
 
@@ -116,9 +145,12 @@ def excel_to_pdf(input_path: str, output_path: str) -> str:
 
 
 def ppt_to_pdf(input_path: str, output_path: str) -> str:
-    """Convert PPTX to PDF using docx2pdf (requires MS Office on Windows)."""
-    from docx2pdf import convert
-    convert(input_path, output_path)
+    """Convert PPTX to PDF (requires MS Office on Windows, LibreOffice on Linux)."""
+    if platform.system() == "Windows":
+        from docx2pdf import convert
+        convert(input_path, output_path)
+    else:
+        linux_convert_to_pdf(input_path, output_path)
     return output_path
 
 

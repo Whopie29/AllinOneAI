@@ -13,12 +13,12 @@ WORKDIR /app
 # Install system dependencies
 # - libreoffice: for converting DOCX/PPTX to PDF
 # - ffmpeg: for Whisper audio transcribing & Video processing
-# - libgl1-mesa-glx & libglib2.0-0: required for OpenCV and EasyOCR
+# - libgl1 & libglib2.0-0: required for OpenCV and EasyOCR
 # - build-essential: required for building some python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice \
     ffmpeg \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     build-essential \
     && apt-get clean \

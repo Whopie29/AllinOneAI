@@ -34,6 +34,16 @@ class SelfHealingEmbeddings:
                 "environment variable is configured correctly on Render."
             )
         if not self._local_embeddings:
+            import traceback
+            import sys
+            print("[DEBUG] Python path:", sys.path)
+            try:
+                print("[DEBUG] Attempting manual import of sentence_transformers...")
+                import sentence_transformers
+                print("[DEBUG] sentence_transformers imported successfully!")
+            except BaseException as e:
+                print("[ERROR] Manual import of sentence_transformers failed:", str(e))
+                traceback.print_exc()
             from langchain_community.embeddings import HuggingFaceEmbeddings
             self._local_embeddings = HuggingFaceEmbeddings(model_name=self.model_name)
         return self._local_embeddings

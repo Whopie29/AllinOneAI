@@ -1,0 +1,836 @@
+{% extends 'layout.html' %}
+
+{% block title %}Image Processor - AIOAI Hub{% endblock %}
+
+{% block head %}
+<style>
+    /* Styling for manual crop handles and workspace */
+    .crop-handle {
+        box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+        transition: transform 0.1s ease, background-color 0.1s ease;
+    }
+    .crop-handle:hover {
+        transform: scale(1.35);
+        background-color: #22d3ee;
+    }
+</style>
+{% endblock %}
+
+{% block header_title %}Image Processor{% endblock %}
+{% block breadcrumbs %}Image Processor{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 fade-in">
+    
+    <!-- Left Column: Controls (lg:col-span-5) -->
+    <div class="lg:col-span-5 space-y-6">
+        
+        <!-- File Upload Area -->
+        <div class="glass-panel p-6 rounded-2xl border border-cyber-border space-y-4">
+            <h3 class="text-sm font-semibold text-cyber-muted uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-cyber-secondary"></i>
+                <span>Upload Target Image</span>
+            </h3>
+            
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-secondary/40 rounded-xl p-6 text-center transition cursor-pointer relative" id="img-drop-zone">
+                <input type="file" id="img-file-input" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
+                <div class="space-y-2 pointer-events-none">
+                    <i class="fa-solid fa-file-image text-3xl text-cyber-secondary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="upload-hint">Drag & drop image or browse</p>
+                    <p class="text-[10px] text-cyber-muted">Supports JPG, PNG, WEBP</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operations Panel -->
+        <div class="glass-panel rounded-2xl border border-cyber-border overflow-hidden">
+            <!-- Action selection menu -->
+            <div class="bg-black/35 border-b border-cyber-border px-4 py-3 flex flex-wrap gap-1">
+                <button onclick="switchImgAction('resize')" id="btn-act-resize" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition bg-cyber-secondary text-black">Resize</button>
+                <button onclick="switchImgAction('crop')" id="btn-act-crop" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Crop</button>
+                <button onclick="switchImgAction('compress')" id="btn-act-compress" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Compress</button>
+                <button onclick="switchImgAction('convert')" id="btn-act-convert" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Convert</button>
+                <button onclick="switchImgAction('adjust')" id="btn-act-adjust" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Adjust</button>
+                <button onclick="switchImgAction('watermark')" id="btn-act-watermark" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Watermark</button>
+                <button onclick="switchImgAction('remove_bg')" id="btn-act-remove_bg" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">AI BG</button>
+                <button onclick="switchImgAction('ocr')" id="btn-act-ocr" class="act-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">OCR</button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Resize Section -->
+                <div id="act-content-resize" class="act-content space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Width (px):</label>
+                            <input type="number" id="resize-w" value="800" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Height (px):</label>
+                            <input type="number" id="resize-h" value="600" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                        </div>
+                    </div>
+                    <label class="flex items-center space-x-2 cursor-pointer py-1">
+                        <input type="checkbox" id="resize-aspect" checked class="w-4 h-4 rounded border-cyber-border bg-black text-cyber-secondary focus:ring-0 focus:ring-offset-0">
+                        <span class="text-xs text-cyber-muted">Keep aspect ratio</span>
+                    </label>
+                </div>
+
+                <!-- Crop Section -->
+                <div id="act-content-crop" class="act-content space-y-4 hidden">
+                    <p class="text-xs text-cyber-muted leading-relaxed">Enter crop box offsets (relative to image boundaries).</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Left Offset (X1):</label>
+                            <input type="number" id="crop-left" value="0" min="0" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Top Offset (Y1):</label>
+                            <input type="number" id="crop-top" value="0" min="0" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Right Bound (X2):</label>
+                            <input type="number" id="crop-right" value="400" min="1" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Bottom Bound (Y2):</label>
+                            <input type="number" id="crop-bottom" value="400" min="1" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compress Section -->
+                <div id="act-content-compress" class="act-content space-y-4 hidden">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Compression Mode:</label>
+                        <select id="compress-mode" onchange="toggleCompressMode(this.value)" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                            <option value="quality">By Quality Percentage</option>
+                            <option value="size">By Target File Size</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Quality Slider -->
+                    <div id="compress-quality-container" class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold uppercase tracking-wider text-cyber-muted">
+                            <span>JPEG Quality:</span>
+                            <span id="compress-val" class="text-cyber-secondary">60%</span>
+                        </div>
+                        <input type="range" id="compress-quality" min="5" max="95" value="60" oninput="document.getElementById('compress-val').innerText = this.value + '%'" class="w-full h-1.5 bg-black/45 rounded-lg appearance-none cursor-pointer accent-cyber-secondary">
+                        <p class="text-[10px] text-cyber-muted">Lower values reduce size but decrease image clarity.</p>
+                    </div>
+
+                    <!-- Target Size Input -->
+                    <div id="compress-size-container" class="space-y-3 hidden">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="col-span-2 space-y-1">
+                                <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Target Size:</label>
+                                <input type="number" id="compress-target-size" value="200" min="1" step="any" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Unit:</label>
+                                <select id="compress-target-unit" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                                    <option value="kb">KB</option>
+                                    <option value="mb">MB</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-cyber-muted">The system will dynamically adjust compression levels and dimensions to meet the size constraints.</p>
+                    </div>
+                </div>
+
+                <!-- Convert Section -->
+                <div id="act-content-convert" class="act-content space-y-4 hidden">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Output Format:</label>
+                        <select id="convert-fmt" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                            <option value="png">PNG (Portable Network Graphics)</option>
+                            <option value="jpg">JPG (Joint Photographic Group)</option>
+                            <option value="webp">WEBP (Modern web format)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Adjust Section -->
+                <div id="act-content-adjust" class="act-content space-y-5 hidden">
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold uppercase tracking-wider text-cyber-muted">
+                            <span>Brightness:</span>
+                            <span id="brightness-val" class="text-cyber-secondary">1.0</span>
+                        </div>
+                        <input type="range" id="adjust-brightness" min="0.1" max="3.0" step="0.1" value="1.0" oninput="document.getElementById('brightness-val').innerText = this.value" class="w-full h-1.5 bg-black/45 rounded-lg appearance-none cursor-pointer accent-cyber-secondary">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold uppercase tracking-wider text-cyber-muted">
+                            <span>Contrast:</span>
+                            <span id="contrast-val" class="text-cyber-secondary">1.0</span>
+                        </div>
+                        <input type="range" id="adjust-contrast" min="0.1" max="3.0" step="0.1" value="1.0" oninput="document.getElementById('contrast-val').innerText = this.value" class="w-full h-1.5 bg-black/45 rounded-lg appearance-none cursor-pointer accent-cyber-secondary">
+                    </div>
+                </div>
+
+                <!-- Watermark Section -->
+                <div id="act-content-watermark" class="act-content space-y-4 hidden">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Watermark Text:</label>
+                        <input type="text" id="watermark-text" value="CONFIDENTIAL" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Color:</label>
+                            <input type="color" id="watermark-color" value="#ffffff" class="w-full h-10 rounded-xl bg-black/45 border border-cyber-border cursor-pointer">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Font Size:</label>
+                            <input type="number" id="watermark-size" value="40" min="10" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold uppercase tracking-wider text-cyber-muted">
+                            <span>Opacity (Alpha):</span>
+                            <span id="opacity-val" class="text-cyber-secondary">128</span>
+                        </div>
+                        <input type="range" id="watermark-opacity" min="0" max="255" value="128" oninput="document.getElementById('opacity-val').innerText = this.value" class="w-full h-1.5 bg-black/45 rounded-lg appearance-none cursor-pointer accent-cyber-secondary">
+                    </div>
+                </div>
+
+                <!-- AI Background Tools -->
+                <div id="act-content-remove_bg" class="act-content space-y-4 hidden">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">AI Background Fill Mode:</label>
+                        <select id="bg-mode" onchange="toggleBgColorInput(this.value)" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-secondary text-white text-sm outline-none">
+                            <option value="transparent">Transparent background (PNG output)</option>
+                            <option value="color">Fill with custom solid color</option>
+                        </select>
+                    </div>
+                    <div id="bg-color-container" class="space-y-1 hidden">
+                        <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Fill Color:</label>
+                        <input type="color" id="bg-color" value="#ffffff" class="w-full h-10 rounded-xl bg-black/45 border border-cyber-border cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- OCR (Image to Text) -->
+                <div id="act-content-ocr" class="act-content space-y-2 hidden">
+                    <p class="text-xs text-cyber-muted leading-relaxed">
+                        Extract English text from image coordinates via local OCR pipeline. Processing begins upon submission.
+                    </p>
+                </div>
+
+                <!-- Action Button -->
+                <button onclick="processImage()" id="btn-process-image" disabled class="w-full py-3 rounded-xl bg-cyber-secondary hover:bg-cyber-secondary/90 disabled:bg-slate-800 disabled:text-cyber-muted font-bold text-xs text-black uppercase tracking-wider transition duration-300 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Process Image
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column: Visual Preview Panel (lg:col-span-7) -->
+    <div class="lg:col-span-7 flex flex-col">
+        <div class="glass-panel p-6 rounded-2xl border border-cyber-border flex-1 flex flex-col min-h-[450px] relative">
+            <h3 class="text-sm font-semibold text-cyber-muted uppercase tracking-wider flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-display text-cyber-secondary"></i>
+                <span>Interactive Workspace Preview</span>
+            </h3>
+            
+            <!-- Loader indicator inside preview -->
+            <div id="preview-loader" class="absolute inset-0 bg-black/85 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center hidden z-20">
+                <div class="w-12 h-12 border-4 border-cyber-secondary/20 border-t-cyber-secondary rounded-full animate-spin mb-4"></div>
+                <p class="text-xs font-semibold tracking-wider text-white">Running AI Pipeline...</p>
+            </div>
+
+            <!-- Preview Screens container -->
+            <div class="flex-1 flex flex-col items-center justify-center border border-cyber-border/40 rounded-xl bg-black/20 p-4 relative overflow-hidden">
+                
+                <!-- Initial Workspace Placeholder -->
+                <div id="workspace-placeholder" class="text-center space-y-3 p-8">
+                    <div class="w-16 h-16 rounded-full bg-white/5 border border-cyber-border flex items-center justify-center mx-auto text-cyber-muted text-xl">
+                        <i class="fa-regular fa-image"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-white">No Image Active</h4>
+                        <p class="text-xs text-cyber-muted mt-1">Select an image in the uploads panel to load the editor canvas.</p>
+                    </div>
+                </div>
+
+                <!-- Image view grid -->
+                <div id="image-workspace" class="hidden w-full h-full flex flex-col md:flex-row gap-4 justify-center items-center">
+                    <div class="flex flex-col items-center w-full max-w-[280px]">
+                        <span class="text-[10px] text-cyber-muted font-bold tracking-widest uppercase mb-1.5">Original Image</span>
+                        <div class="border border-cyber-border bg-black/40 rounded-xl overflow-hidden aspect-square flex items-center justify-center p-2">
+                            <img id="img-orig-preview" src="#" class="max-w-full max-h-[220px] object-contain rounded-lg">
+                        </div>
+                    </div>
+                    
+                    <div class="hidden md:flex flex-col justify-center items-center text-cyber-muted">
+                        <i class="fa-solid fa-circle-chevron-right text-lg"></i>
+                    </div>
+
+                    <div class="flex flex-col items-center w-full max-w-[280px]">
+                        <span class="text-[10px] text-cyber-secondary font-bold tracking-widest uppercase mb-1.5">Processed Image</span>
+                        <div class="border border-cyber-secondary/30 bg-black/45 rounded-xl overflow-hidden aspect-square flex items-center justify-center p-2 relative">
+                            <img id="img-proc-preview" src="#" class="max-w-full max-h-[220px] object-contain rounded-lg hidden">
+                            <!-- Processed Placeholder -->
+                            <div id="proc-placeholder" class="text-center text-cyber-muted p-4">
+                                <i class="fa-solid fa-spinner animate-pulse text-2xl mb-1.5"></i>
+                                <p class="text-[10px]">Awaiting run...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OCR Results area -->
+                <div id="ocr-workspace" class="hidden w-full h-full flex flex-col space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-semibold text-cyber-secondary uppercase tracking-wider">Extracted OCR Text:</span>
+                        <button onclick="copyOcrText()" class="px-3 py-1 rounded bg-white/5 hover:bg-white/10 border border-cyber-border text-white text-[10px] font-semibold transition">
+                            <i class="fa-regular fa-copy mr-1"></i> Copy Text
+                        </button>
+                    </div>
+                    <textarea id="ocr-text-result" readonly class="flex-1 w-full p-4 rounded-xl bg-black/45 border border-cyber-border text-cyber-muted text-xs font-mono resize-none focus:outline-none focus:border-cyber-secondary leading-relaxed"></textarea>
+                </div>
+
+                <!-- Crop Workspace -->
+                <div id="crop-workspace" class="hidden w-full h-full flex flex-col items-center justify-center p-2">
+                    <span class="text-[10px] text-cyber-secondary font-bold tracking-widest uppercase mb-1.5">Drag borders/corners to crop</span>
+                    <div id="crop-wrapper" class="relative border border-cyber-border bg-black/40 rounded-xl overflow-hidden flex items-center justify-center select-none" style="max-width: 100%; max-height: 350px;">
+                        <img id="crop-img-display" src="#" class="max-w-full max-h-[320px] object-contain rounded-lg pointer-events-none">
+                        
+                        <!-- Shading masks -->
+                        <div id="crop-mask-t" class="absolute bg-black/60 pointer-events-none left-0 right-0 top-0"></div>
+                        <div id="crop-mask-b" class="absolute bg-black/60 pointer-events-none left-0 right-0 bottom-0"></div>
+                        <div id="crop-mask-l" class="absolute bg-black/60 pointer-events-none top-0 bottom-0 left-0"></div>
+                        <div id="crop-mask-r" class="absolute bg-black/60 pointer-events-none top-0 bottom-0 right-0"></div>
+
+                        <!-- Draggable Crop Box Overlay -->
+                        <div id="crop-box" class="absolute border-2 border-dashed border-cyber-secondary cursor-move box-border" style="display: none;">
+                            <!-- Handles -->
+                            <div data-handle="tl" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full -top-1.75 -left-1.75 cursor-nwse-resize z-10 shadow-lg border border-black"></div>
+                            <div data-handle="tr" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full -top-1.75 -right-1.75 cursor-nesw-resize z-10 shadow-lg border border-black"></div>
+                            <div data-handle="bl" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full -bottom-1.75 -left-1.75 cursor-nesw-resize z-10 shadow-lg border border-black"></div>
+                            <div data-handle="br" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full -bottom-1.75 -right-1.75 cursor-nwse-resize z-10 shadow-lg border border-black"></div>
+                            <div data-handle="t" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full -top-1.75 left-[calc(50%-7px)] cursor-ns-resize z-10 shadow-lg border border-black"></div>
+                            <div data-handle="b" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full -bottom-1.75 left-[calc(50%-7px)] cursor-ns-resize z-10 shadow-lg border border-black"></div>
+                            <div data-handle="l" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full top-[calc(50%-7px)] -left-1.75 cursor-ew-resize z-10 shadow-lg border border-black"></div>
+                            <div data-handle="r" class="crop-handle absolute w-3.5 h-3.5 bg-cyber-secondary rounded-full top-[calc(50%-7px)] -right-1.75 cursor-ew-resize z-10 shadow-lg border border-black"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Action footer -->
+            <div id="editor-footer" class="mt-4 pt-4 border-t border-cyber-border flex justify-between items-center hidden">
+                <span id="image-dimensions-label" class="text-[10px] text-cyber-muted font-medium">Resolving resolution...</span>
+                <a id="img-download-btn" href="#" download class="px-5 py-2.5 rounded-xl bg-cyber-accent hover:bg-cyber-accent/90 text-black font-semibold text-xs transition flex items-center gap-2 hidden">
+                    <i class="fa-solid fa-download"></i> Download Image
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let activeAction = 'resize';
+    const fileInput = document.getElementById('img-file-input');
+    const processBtn = document.getElementById('btn-process-image');
+    
+    // Dragging variables for Crop Box
+    let isDraggingBox = false;
+    let activeHandle = null;
+    let startX, startY;
+    let startLeft, startTop, startWidth, startHeight;
+
+    // Switch action tab
+    function switchImgAction(action) {
+        activeAction = action;
+        
+        // Buttons highlight
+        document.querySelectorAll('.act-btn').forEach(btn => {
+            btn.classList.remove('bg-cyber-secondary', 'text-black');
+            btn.classList.add('text-cyber-muted');
+        });
+        document.getElementById(`btn-act-${action}`).classList.remove('text-cyber-muted');
+        document.getElementById(`btn-act-${action}`).classList.add('bg-cyber-secondary', 'text-black');
+        
+        // Hide all configurations
+        document.querySelectorAll('.act-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`act-content-${action}`).classList.remove('hidden');
+        
+        // Toggle workspaces
+        const file = fileInput.files[0];
+        if (file) {
+            if (action === 'crop') {
+                document.getElementById('image-workspace').classList.add('hidden');
+                document.getElementById('ocr-workspace').classList.add('hidden');
+                document.getElementById('crop-workspace').classList.remove('hidden');
+                initCropWorkspace();
+            } else {
+                document.getElementById('crop-workspace').classList.add('hidden');
+                if (action === 'ocr' && document.getElementById('ocr-text-result').value) {
+                    document.getElementById('image-workspace').classList.add('hidden');
+                    document.getElementById('ocr-workspace').classList.remove('hidden');
+                } else {
+                    document.getElementById('image-workspace').classList.remove('hidden');
+                    document.getElementById('ocr-workspace').classList.add('hidden');
+                }
+            }
+        }
+    }
+
+    // Toggle BG color options
+    function toggleBgColorInput(val) {
+        const colorContainer = document.getElementById('bg-color-container');
+        if (val === 'color') {
+            colorContainer.classList.remove('hidden');
+        } else {
+            colorContainer.classList.add('hidden');
+        }
+    }
+
+    // Toggle compression mode options
+    function toggleCompressMode(val) {
+        const qualityContainer = document.getElementById('compress-quality-container');
+        const sizeContainer = document.getElementById('compress-size-container');
+        if (val === 'size') {
+            qualityContainer.classList.add('hidden');
+            sizeContainer.classList.remove('hidden');
+        } else {
+            qualityContainer.classList.remove('hidden');
+            sizeContainer.classList.add('hidden');
+        }
+    }
+
+    // Handle file selection
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('upload-hint').innerText = file.name;
+            processBtn.disabled = false;
+            
+            // Show previews
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                // Display layout elements
+                document.getElementById('workspace-placeholder').classList.add('hidden');
+                document.getElementById('image-workspace').classList.remove('hidden');
+                document.getElementById('ocr-workspace').classList.add('hidden');
+                document.getElementById('crop-workspace').classList.add('hidden');
+                document.getElementById('editor-footer').classList.remove('hidden');
+                
+                // Set original preview image
+                const origImg = document.getElementById('img-orig-preview');
+                origImg.src = evt.target.result;
+                origImg.onload = function() {
+                    document.getElementById('image-dimensions-label').innerText = `${this.naturalWidth} x ${this.naturalHeight} px`;
+                    
+                    // Fill inputs
+                    document.getElementById('resize-w').value = this.naturalWidth;
+                    document.getElementById('resize-h').value = this.naturalHeight;
+                    document.getElementById('crop-left').value = 0;
+                    document.getElementById('crop-top').value = 0;
+                    document.getElementById('crop-right').value = this.naturalWidth;
+                    document.getElementById('crop-bottom').value = this.naturalHeight;
+                    
+                    // If crop is the active action when uploaded, initialize it!
+                    if (activeAction === 'crop') {
+                        document.getElementById('image-workspace').classList.add('hidden');
+                        document.getElementById('crop-workspace').classList.remove('hidden');
+                        initCropWorkspace();
+                    }
+                }
+                
+                // Hide processed preview until process
+                document.getElementById('img-proc-preview').classList.add('hidden');
+                document.getElementById('proc-placeholder').classList.remove('hidden');
+                document.getElementById('img-download-btn').classList.add('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Initialize Crop Box overlay with sizing fit
+    function initCropWorkspace() {
+        const file = fileInput.files[0];
+        if (!file) return;
+        
+        const displayImg = document.getElementById('crop-img-display');
+        const origImg = document.getElementById('img-orig-preview');
+        
+        displayImg.src = origImg.src;
+        
+        displayImg.onload = function() {
+            const wrapper = document.getElementById('crop-wrapper');
+            const displayWidth = displayImg.clientWidth;
+            const displayHeight = displayImg.clientHeight;
+            
+            wrapper.style.width = displayWidth + 'px';
+            wrapper.style.height = displayHeight + 'px';
+            
+            const cropBox = document.getElementById('crop-box');
+            cropBox.style.display = 'block';
+            
+            // Check if bounds already have input
+            const lVal = parseFloat(document.getElementById('crop-left').value) || 0;
+            const tVal = parseFloat(document.getElementById('crop-top').value) || 0;
+            const rVal = parseFloat(document.getElementById('crop-right').value) || displayImg.naturalWidth;
+            const bVal = parseFloat(document.getElementById('crop-bottom').value) || displayImg.naturalHeight;
+            
+            if (lVal === 0 && tVal === 0 && rVal === displayImg.naturalWidth && bVal === displayImg.naturalHeight) {
+                const left = displayWidth * 0.1;
+                const top = displayHeight * 0.1;
+                const width = displayWidth * 0.8;
+                const height = displayHeight * 0.8;
+                
+                cropBox.style.left = left + 'px';
+                cropBox.style.top = top + 'px';
+                cropBox.style.width = width + 'px';
+                cropBox.style.height = height + 'px';
+                
+                updateMasks(left, top, width, height, displayWidth, displayHeight);
+                updateCropInputs(left, top, width, height);
+            } else {
+                updateCropBoxFromInputs();
+            }
+        };
+        
+        if (displayImg.complete && displayImg.naturalWidth > 0) {
+            displayImg.onload();
+        }
+    }
+
+    // Update dimensions masks
+    function updateMasks(left, top, width, height, wrapperWidth, wrapperHeight) {
+        const maskT = document.getElementById('crop-mask-t');
+        const maskB = document.getElementById('crop-mask-b');
+        const maskL = document.getElementById('crop-mask-l');
+        const maskR = document.getElementById('crop-mask-r');
+        
+        maskT.style.top = '0px';
+        maskT.style.left = '0px';
+        maskT.style.width = '100%';
+        maskT.style.height = top + 'px';
+        
+        maskB.style.top = (top + height) + 'px';
+        maskB.style.left = '0px';
+        maskB.style.width = '100%';
+        maskB.style.height = Math.max(0, wrapperHeight - (top + height)) + 'px';
+        
+        maskL.style.top = top + 'px';
+        maskL.style.left = '0px';
+        maskL.style.width = left + 'px';
+        maskL.style.height = height + 'px';
+        
+        maskR.style.top = top + 'px';
+        maskR.style.left = (left + width) + 'px';
+        maskR.style.width = Math.max(0, wrapperWidth - (left + width)) + 'px';
+        maskR.style.height = height + 'px';
+    }
+
+    // Convert display size crop back to actual image resolution inputs
+    function updateCropInputs(left, top, width, height) {
+        const displayImg = document.getElementById('crop-img-display');
+        const naturalWidth = displayImg.naturalWidth;
+        const naturalHeight = displayImg.naturalHeight;
+        const displayWidth = displayImg.clientWidth;
+        const displayHeight = displayImg.clientHeight;
+        
+        if (displayWidth === 0 || displayHeight === 0 || !naturalWidth || !naturalHeight) return;
+        
+        const scaleX = naturalWidth / displayWidth;
+        const scaleY = naturalHeight / displayHeight;
+        
+        document.getElementById('crop-left').value = Math.max(0, Math.round(left * scaleX));
+        document.getElementById('crop-top').value = Math.max(0, Math.round(top * scaleY));
+        document.getElementById('crop-right').value = Math.min(naturalWidth, Math.round((left + width) * scaleX));
+        document.getElementById('crop-bottom').value = Math.min(naturalHeight, Math.round((top + height) * scaleY));
+    }
+
+    // Convert actual image resolution inputs to visually scaled position
+    function updateCropBoxFromInputs() {
+        const displayImg = document.getElementById('crop-img-display');
+        const naturalWidth = displayImg.naturalWidth;
+        const naturalHeight = displayImg.naturalHeight;
+        const displayWidth = displayImg.clientWidth;
+        const displayHeight = displayImg.clientHeight;
+        
+        if (displayWidth === 0 || displayHeight === 0 || !naturalWidth || !naturalHeight) return;
+        
+        const scaleX = displayWidth / naturalWidth;
+        const scaleY = displayHeight / naturalHeight;
+        
+        let leftVal = parseFloat(document.getElementById('crop-left').value) || 0;
+        let topVal = parseFloat(document.getElementById('crop-top').value) || 0;
+        let rightVal = parseFloat(document.getElementById('crop-right').value) || naturalWidth;
+        let bottomVal = parseFloat(document.getElementById('crop-bottom').value) || naturalHeight;
+        
+        // Clamping logic
+        if (leftVal < 0) leftVal = 0;
+        if (topVal < 0) topVal = 0;
+        if (rightVal > naturalWidth) rightVal = naturalWidth;
+        if (bottomVal > naturalHeight) bottomVal = naturalHeight;
+        if (leftVal >= rightVal) leftVal = rightVal - 1;
+        if (topVal >= bottomVal) topVal = bottomVal - 1;
+        
+        const left = leftVal * scaleX;
+        const top = topVal * scaleY;
+        const width = (rightVal - leftVal) * scaleX;
+        const height = (bottomVal - topVal) * scaleY;
+        
+        const cropBox = document.getElementById('crop-box');
+        cropBox.style.left = left + 'px';
+        cropBox.style.top = top + 'px';
+        cropBox.style.width = width + 'px';
+        cropBox.style.height = height + 'px';
+        
+        updateMasks(left, top, width, height, displayWidth, displayHeight);
+    }
+
+    // Set up dragging event handlers
+    const cropBox = document.getElementById('crop-box');
+    cropBox.addEventListener('mousedown', (e) => {
+        const handle = e.target.closest('.crop-handle');
+        if (handle) {
+            activeHandle = handle.getAttribute('data-handle');
+        } else {
+            isDraggingBox = true;
+        }
+        
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = parseFloat(cropBox.style.left) || 0;
+        startTop = parseFloat(cropBox.style.top) || 0;
+        startWidth = parseFloat(cropBox.style.width) || 0;
+        startHeight = parseFloat(cropBox.style.height) || 0;
+        
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDraggingBox && !activeHandle) return;
+        
+        const wrapper = document.getElementById('crop-wrapper');
+        const wrapperRect = wrapper.getBoundingClientRect();
+        
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        let newLeft = startLeft;
+        let newTop = startTop;
+        let newWidth = startWidth;
+        let newHeight = startHeight;
+        
+        const minSize = 25; // min dimensions in display pixels
+        
+        if (isDraggingBox) {
+            newLeft = startLeft + dx;
+            newTop = startTop + dy;
+            
+            // Bounds check
+            if (newLeft < 0) newLeft = 0;
+            if (newTop < 0) newTop = 0;
+            if (newLeft + startWidth > wrapperRect.width) newLeft = wrapperRect.width - startWidth;
+            if (newTop + startHeight > wrapperRect.height) newTop = wrapperRect.height - startHeight;
+        } else if (activeHandle) {
+            switch (activeHandle) {
+                case 'tl':
+                    newLeft = startLeft + dx;
+                    newTop = startTop + dy;
+                    newWidth = startWidth - dx;
+                    newHeight = startHeight - dy;
+                    break;
+                case 'tr':
+                    newTop = startTop + dy;
+                    newWidth = startWidth + dx;
+                    newHeight = startHeight - dy;
+                    break;
+                case 'bl':
+                    newLeft = startLeft + dx;
+                    newWidth = startWidth - dx;
+                    newHeight = startHeight + dy;
+                    break;
+                case 'br':
+                    newWidth = startWidth + dx;
+                    newHeight = startHeight + dy;
+                    break;
+                case 't':
+                    newTop = startTop + dy;
+                    newHeight = startHeight - dy;
+                    break;
+                case 'b':
+                    newHeight = startHeight + dy;
+                    break;
+                case 'l':
+                    newLeft = startLeft + dx;
+                    newWidth = startWidth - dx;
+                    break;
+                case 'r':
+                    newWidth = startWidth + dx;
+                    break;
+            }
+            
+            // Minimum limits
+            if (newWidth < minSize) {
+                if (activeHandle.includes('l')) {
+                    newLeft = startLeft + startWidth - minSize;
+                }
+                newWidth = minSize;
+            }
+            if (newHeight < minSize) {
+                if (activeHandle.includes('t')) {
+                    newTop = startTop + startHeight - minSize;
+                }
+                newHeight = minSize;
+            }
+            
+            // Max bounds limit
+            if (newLeft < 0) {
+                newWidth += newLeft;
+                newLeft = 0;
+            }
+            if (newTop < 0) {
+                newHeight += newTop;
+                newTop = 0;
+            }
+            if (newLeft + newWidth > wrapperRect.width) {
+                newWidth = wrapperRect.width - newLeft;
+            }
+            if (newTop + newHeight > wrapperRect.height) {
+                newHeight = wrapperRect.height - newTop;
+            }
+        }
+        
+        cropBox.style.left = newLeft + 'px';
+        cropBox.style.top = newTop + 'px';
+        cropBox.style.width = newWidth + 'px';
+        cropBox.style.height = newHeight + 'px';
+        
+        updateMasks(newLeft, newTop, newWidth, newHeight, wrapperRect.width, wrapperRect.height);
+        updateCropInputs(newLeft, newTop, newWidth, newHeight);
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDraggingBox = false;
+        activeHandle = null;
+    });
+
+    // Two-way bindings on manual text input edit
+    ['crop-left', 'crop-top', 'crop-right', 'crop-bottom'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            if (activeAction === 'crop' && fileInput.files[0]) {
+                updateCropBoxFromInputs();
+            }
+        });
+    });
+
+    // Window resize handler
+    window.addEventListener('resize', () => {
+        if (activeAction === 'crop' && fileInput.files[0]) {
+            const displayImg = document.getElementById('crop-img-display');
+            const wrapper = document.getElementById('crop-wrapper');
+            const displayWidth = displayImg.clientWidth;
+            const displayHeight = displayImg.clientHeight;
+            if (displayWidth > 0 && displayHeight > 0) {
+                wrapper.style.width = displayWidth + 'px';
+                wrapper.style.height = displayHeight + 'px';
+                updateCropBoxFromInputs();
+            }
+        }
+    });
+
+    // Run action
+    function processImage() {
+        const file = fileInput.files[0];
+        if (!file) return;
+        
+        const loader = document.getElementById('preview-loader');
+        loader.classList.remove('hidden');
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('action', activeAction);
+        
+        if (activeAction === 'resize') {
+            formData.append('width', document.getElementById('resize-w').value);
+            formData.append('height', document.getElementById('resize-h').value);
+            formData.append('keep_aspect', document.getElementById('resize-aspect').checked);
+        } else if (activeAction === 'crop') {
+            formData.append('left', document.getElementById('crop-left').value);
+            formData.append('top', document.getElementById('crop-top').value);
+            formData.append('right', document.getElementById('crop-right').value);
+            formData.append('bottom', document.getElementById('crop-bottom').value);
+        } else if (activeAction === 'compress') {
+            const mode = document.getElementById('compress-mode').value;
+            formData.append('compress_mode', mode);
+            if (mode === 'size') {
+                formData.append('target_size', document.getElementById('compress-target-size').value);
+                formData.append('target_unit', document.getElementById('compress-target-unit').value);
+            } else {
+                formData.append('quality', document.getElementById('compress-quality').value);
+            }
+        } else if (activeAction === 'convert') {
+            formData.append('format', document.getElementById('convert-fmt').value);
+        } else if (activeAction === 'adjust') {
+            formData.append('brightness', document.getElementById('adjust-brightness').value);
+            formData.append('contrast', document.getElementById('adjust-contrast').value);
+        } else if (activeAction === 'watermark') {
+            formData.append('text', document.getElementById('watermark-text').value);
+            formData.append('color', document.getElementById('watermark-color').value);
+            formData.append('font_size', document.getElementById('watermark-size').value);
+            formData.append('opacity', document.getElementById('watermark-opacity').value);
+        } else if (activeAction === 'remove_bg') {
+            const mode = document.getElementById('bg-mode').value;
+            if (mode === 'color') {
+                formData.append('action', 'change_bg');
+                formData.append('color', document.getElementById('bg-color').value);
+            } else {
+                formData.append('action', 'remove_bg');
+            }
+        } else if (activeAction === 'ocr') {
+            formData.append('action', 'ocr');
+        }
+
+        fetch('/api/image/process', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            loader.classList.add('hidden');
+            if (data.error) {
+                alert(data.error);
+            } else if (data.ocr_text !== undefined) {
+                // OCR Result
+                document.getElementById('image-workspace').classList.add('hidden');
+                document.getElementById('ocr-workspace').classList.remove('hidden');
+                document.getElementById('crop-workspace').classList.add('hidden');
+                document.getElementById('ocr-text-result').value = data.ocr_text || "No text was detected in the uploaded image.";
+            } else {
+                // Image Result
+                document.getElementById('ocr-workspace').classList.add('hidden');
+                document.getElementById('crop-workspace').classList.add('hidden');
+                document.getElementById('image-workspace').classList.remove('hidden');
+                
+                const procImg = document.getElementById('img-proc-preview');
+                procImg.src = data.download_url + '?t=' + new Date().getTime(); // prevent browser caching
+                procImg.classList.remove('hidden');
+                document.getElementById('proc-placeholder').classList.add('hidden');
+                
+                const dlBtn = document.getElementById('img-download-btn');
+                dlBtn.href = data.download_url;
+                dlBtn.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            loader.classList.add('hidden');
+            alert("Error processing image: " + err.message);
+        });
+    }
+
+    function copyOcrText() {
+        const text = document.getElementById('ocr-text-result');
+        text.select();
+        document.execCommand('copy');
+        alert("OCR text copied to clipboard!");
+    }
+</script>
+{% endblock %}

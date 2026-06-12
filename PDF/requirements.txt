@@ -1,0 +1,9 @@
+pymupdf
+pdfplumber
+pandas
+openpyxl
+python-pptx
+Pillow
+pdf2docx
+docx2pdf
+reportlab

@@ -1,0 +1,434 @@
+{% extends 'layout.html' %}
+
+{% block title %}Video & Audio Toolkit - AIOAI Hub{% endblock %}
+
+{% block header_title %}Video & Audio Toolkit{% endblock %}
+{% block breadcrumbs %}Media Toolkit{% endblock %}
+
+{% block content %}
+<div class="space-y-6 fade-in">
+    <!-- Header banner -->
+    <div class="glass-panel p-6 rounded-2xl border border-cyber-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold font-outfit text-white flex items-center gap-2">
+                <i class="fa-solid fa-circle-play text-cyber-primary"></i>
+                <span>Media Operations & Transcription</span>
+            </h2>
+            <p class="text-xs text-cyber-muted mt-1">Transcribe media with Whisper, adjust audio noise, or process video files.</p>
+        </div>
+        
+        <!-- Tab selector -->
+        <div class="flex flex-wrap gap-1 bg-black/45 p-1 rounded-xl border border-cyber-border self-start">
+            <button onclick="switchMediaTab('transcribe')" id="tab-btn-transcribe" class="media-tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-white bg-cyber-primary">Speech to Text</button>
+            <button onclick="switchMediaTab('video-ops')" id="tab-btn-video-ops" class="media-tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Video Processing</button>
+            <button onclick="switchMediaTab('audio-ops')" id="tab-btn-audio-ops" class="media-tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Audio Processing</button>
+        </div>
+    </div>
+
+    <!-- Active Content Area -->
+    <div class="glass-panel p-8 rounded-2xl border border-cyber-border min-h-[420px] relative">
+        
+        <!-- Processing Overlay Loader -->
+        <div id="media-loader-overlay" class="absolute inset-0 bg-[#090d16]/85 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center hidden z-30">
+            <div class="relative w-20 h-20 mb-4">
+                <div class="absolute inset-0 border-4 border-cyber-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-cyber-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p id="media-loader-text" class="text-sm font-semibold tracking-wider text-white">Transcribing Audio (Running Whisper)...</p>
+            <p class="text-xs text-cyber-muted mt-1">Whisper models run locally and may take a minute depending on duration.</p>
+        </div>
+
+        <!-- Result Card -->
+        <div id="media-result-card" class="absolute inset-0 bg-[#090d16]/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center hidden z-30 px-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-cyber-accent/15 border border-cyber-accent/30 flex items-center justify-center text-cyber-accent text-2xl mb-4 animate-bounce">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">Process Completed!</h3>
+            <p id="media-result-filename" class="text-xs text-cyber-muted mb-6 truncate max-w-md"></p>
+            <div class="flex gap-4">
+                <a id="media-download-link" href="#" download class="px-6 py-3 rounded-xl bg-cyber-accent hover:bg-cyber-accent/90 text-black font-semibold text-xs transition duration-300 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Download Processed File
+                </a>
+                <button onclick="resetMediaTool()" class="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-cyber-border text-white text-xs font-semibold transition">
+                    Convert Another
+                </button>
+            </div>
+        </div>
+
+        <!-- Transcribe Tab -->
+        <div id="tab-content-transcribe" class="media-tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- Uploader and configurations -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-6 text-center transition cursor-pointer relative" id="drop-zone-transcribe">
+                        <input type="file" id="file-input-transcribe" class="absolute inset-0 opacity-0 cursor-pointer" accept="audio/*,video/*">
+                        <div class="space-y-3 pointer-events-none">
+                            <i class="fa-solid fa-microphone-lines text-3xl text-cyber-primary/75"></i>
+                            <p class="text-sm font-semibold text-white" id="transcribe-file-name">Drag & drop audio/video or browse</p>
+                            <p class="text-[10px] text-cyber-muted">Supports MP3, WAV, M4A, MP4, MKV, etc.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Whisper Model size:</label>
+                            <select id="transcribe-model" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                                <option value="tiny">Tiny (Fastest, lower accuracy - ~75MB)</option>
+                                <option value="base" selected>Base (Recommended - ~145MB)</option>
+                                <option value="small">Small (High accuracy, slower - ~460MB)</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Output format:</label>
+                            <select id="transcribe-mode" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                                <option value="txt">Plain Transcript (.txt)</option>
+                                <option value="srt">Timestamped Subtitles (.srt)</option>
+                                <option value="speakers">Label Speaker Turns (Silence gaps)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button onclick="processTranscription()" id="btn-transcribe-action" disabled class="w-full py-3 bg-cyber-primary hover:bg-cyber-primary/90 disabled:bg-slate-800 disabled:text-cyber-muted text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-quote-right"></i> Run Whisper Transcription
+                    </button>
+                </div>
+
+                <!-- Live output text viewer -->
+                <div class="lg:col-span-7 flex flex-col space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-semibold text-cyber-primary uppercase tracking-wider">Transcription Live Box</span>
+                        <div class="flex gap-2">
+                            <button onclick="copyTranscriptionText()" class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 border border-cyber-border text-white text-[10px] font-semibold transition">
+                                <i class="fa-regular fa-copy mr-1"></i> Copy
+                            </button>
+                            <a id="download-transcript-btn" href="#" download class="px-3 py-1.5 rounded bg-cyber-accent hover:bg-cyber-accent/90 text-black text-[10px] font-bold transition hidden">
+                                <i class="fa-solid fa-download mr-1"></i> Save
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <textarea id="transcribe-text-result" readonly placeholder="Your transcribed text will appear here..." class="flex-grow min-h-[280px] w-full p-4 rounded-xl bg-black/45 border border-cyber-border text-cyber-muted text-xs font-mono resize-none focus:outline-none focus:border-cyber-primary leading-relaxed"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Operations Tab -->
+        <div id="tab-content-video-ops" class="media-tab-content space-y-6 hidden">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-video-ops">
+                <input type="file" id="file-input-video-ops" class="absolute inset-0 opacity-0 cursor-pointer" accept="video/*">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-file-video text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="video-ops-file-name">Drag & drop video file or browse</p>
+                    <p class="text-xs text-cyber-muted">Supports MP4, MKV, AVI, WEBM, MOV</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Operation Action:</label>
+                    <select id="video-action" onchange="toggleVideoActionInputs(this.value)" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                        <option value="mute">Mute Video (Strip Audio Track)</option>
+                        <option value="extract_audio">Extract Audio Track</option>
+                        <option value="convert_video">Convert Format</option>
+                        <option value="compress_video">Compress Video (CRF)</option>
+                    </select>
+                </div>
+
+                <!-- Action dependent inputs -->
+                <div id="video-extract-container" class="space-y-2 hidden">
+                    <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Audio Format:</label>
+                    <select id="video-extract-fmt" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                        <option value="mp3">MP3 (MPEG-Layer 3)</option>
+                        <option value="wav">WAV (Lossless Waveform)</option>
+                    </select>
+                </div>
+
+                <div id="video-convert-container" class="space-y-2 hidden">
+                    <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Target Format:</label>
+                    <select id="video-convert-fmt" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                        <option value="mp4">MP4 (Standard Video)</option>
+                        <option value="mkv">MKV (Matroska Multimedia)</option>
+                        <option value="avi">AVI (Audio Video Interleave)</option>
+                        <option value="webm">WEBM (Modern Web Video)</option>
+                        <option value="mov">MOV (Apple QuickTime)</option>
+                    </select>
+                </div>
+
+                <div id="video-compress-container" class="space-y-2 hidden">
+                    <div class="flex justify-between text-xs font-semibold uppercase tracking-wider text-cyber-muted mb-1">
+                        <span>CRF Compression:</span>
+                        <span id="crf-val" class="text-cyber-primary">28</span>
+                    </div>
+                    <input type="range" id="video-crf" min="18" max="40" value="28" oninput="document.getElementById('crf-val').innerText = this.value" class="w-full h-1.5 bg-black/45 rounded-lg appearance-none cursor-pointer accent-cyber-primary">
+                    <p class="text-[9px] text-cyber-muted">18 = High quality/large file size, 28 = Default, 40 = Low quality/smallest size.</p>
+                </div>
+            </div>
+            
+            <button onclick="processVideoOps()" id="btn-video-ops-action" disabled class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                <i class="fa-solid fa-gears"></i> Process Video
+            </button>
+        </div>
+
+        <!-- Audio Operations Tab -->
+        <div id="tab-content-audio-ops" class="media-tab-content space-y-6 hidden">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-audio-ops">
+                <input type="file" id="file-input-audio-ops" class="absolute inset-0 opacity-0 cursor-pointer" accept="audio/*">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-file-audio text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="audio-ops-file-name">Drag & drop audio file or browse</p>
+                    <p class="text-xs text-cyber-muted">Supports MP3, WAV, AAC, FLAC, OGG</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Operation Action:</label>
+                    <select id="audio-action" onchange="toggleAudioActionInputs(this.value)" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                        <option value="noise_reduction">Spectral Gating Noise Reduction</option>
+                        <option value="convert_audio">Convert Format</option>
+                    </select>
+                </div>
+
+                <div id="audio-convert-container" class="space-y-2 hidden">
+                    <label class="text-[10px] font-semibold text-cyber-muted uppercase tracking-wider block">Target Format:</label>
+                    <select id="audio-convert-fmt" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                        <option value="mp3">MP3 (MPEG Layer-3)</option>
+                        <option value="wav">WAV (Waveform Audio)</option>
+                        <option value="aac">AAC (Advanced Audio Coding)</option>
+                        <option value="flac">FLAC (Lossless Compression)</option>
+                        <option value="ogg">OGG Vorbis</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="processAudioOps()" id="btn-audio-ops-action" disabled class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                <i class="fa-solid fa-volume-high"></i> Process Audio
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let activeMediaTab = 'transcribe';
+    
+    // Tab control
+    function switchMediaTab(tabId) {
+        resetMediaTool();
+        activeMediaTab = tabId;
+        
+        document.querySelectorAll('.media-tab-btn').forEach(btn => {
+            btn.classList.remove('bg-cyber-primary', 'text-white');
+            btn.classList.add('text-cyber-muted');
+        });
+        document.getElementById(`tab-btn-${tabId}`).classList.remove('text-cyber-muted');
+        document.getElementById(`tab-btn-${tabId}`).classList.add('bg-cyber-primary', 'text-white');
+        
+        document.querySelectorAll('.media-tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+    }
+
+    // Toggle Action configurations
+    function toggleVideoActionInputs(action) {
+        document.getElementById('video-extract-container').classList.add('hidden');
+        document.getElementById('video-convert-container').classList.add('hidden');
+        document.getElementById('video-compress-container').classList.add('hidden');
+        
+        if (action === 'extract_audio') {
+            document.getElementById('video-extract-container').classList.remove('hidden');
+        } else if (action === 'convert_video') {
+            document.getElementById('video-convert-container').classList.remove('hidden');
+        } else if (action === 'compress_video') {
+            document.getElementById('video-compress-container').classList.remove('hidden');
+        }
+    }
+
+    function toggleAudioActionInputs(action) {
+        document.getElementById('audio-convert-container').classList.add('hidden');
+        if (action === 'convert_audio') {
+            document.getElementById('audio-convert-container').classList.remove('hidden');
+        }
+    }
+
+    // Overlay indicators
+    const overlay = document.getElementById('media-loader-overlay');
+    const overlayText = document.getElementById('media-loader-text');
+    const resultCard = document.getElementById('media-result-card');
+    const resultName = document.getElementById('media-result-filename');
+    const downloadBtn = document.getElementById('media-download-link');
+
+    function showMediaLoader(msg) {
+        overlayText.innerText = msg;
+        overlay.classList.remove('hidden');
+    }
+    function hideMediaLoader() {
+        overlay.classList.add('hidden');
+    }
+    function showMediaResult(url, name) {
+        downloadBtn.href = url;
+        resultName.innerText = name;
+        resultCard.classList.remove('hidden');
+    }
+    function resetMediaTool() {
+        resultCard.classList.add('hidden');
+        hideMediaLoader();
+        
+        // Clear transcription area
+        document.getElementById('transcribe-text-result').value = "";
+        document.getElementById('download-transcript-btn').classList.add('hidden');
+        
+        // Clear uploads
+        document.getElementById('file-input-transcribe').value = "";
+        document.getElementById('file-input-video-ops').value = "";
+        document.getElementById('file-input-audio-ops').value = "";
+        
+        // Clear names
+        document.getElementById('transcribe-file-name').innerText = "Drag & drop audio/video or browse";
+        document.getElementById('video-ops-file-name').innerText = "Drag & drop video file or browse";
+        document.getElementById('audio-ops-file-name').innerText = "Drag & drop audio file or browse";
+        
+        // Disable action triggers
+        document.getElementById('btn-transcribe-action').disabled = true;
+        document.getElementById('btn-video-ops-action').disabled = true;
+        document.getElementById('btn-audio-ops-action').disabled = true;
+    }
+
+    // Transcribe logic
+    const transcribeInput = document.getElementById('file-input-transcribe');
+    transcribeInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('transcribe-file-name').innerText = file.name;
+            document.getElementById('btn-transcribe-action').disabled = false;
+        }
+    });
+
+    function processTranscription() {
+        const file = transcribeInput.files[0];
+        if (!file) return;
+        showMediaLoader("Running Speech-to-Text Whisper AI...");
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('action', 'transcribe');
+        formData.append('model_size', document.getElementById('transcribe-model').value);
+        formData.append('mode', document.getElementById('transcribe-mode').value);
+        
+        fetch('/api/video/process', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideMediaLoader();
+            if (data.error) {
+                alert(data.error);
+            } else {
+                document.getElementById('transcribe-text-result').value = data.transcription;
+                const saveBtn = document.getElementById('download-transcript-btn');
+                saveBtn.href = data.download_url;
+                saveBtn.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            hideMediaLoader();
+            alert("Transcription failed: " + err.message);
+        });
+    }
+
+    function copyTranscriptionText() {
+        const text = document.getElementById('transcribe-text-result');
+        text.select();
+        document.execCommand('copy');
+        alert("Transcription copied to clipboard!");
+    }
+
+    // Video Operations logic
+    const videoInput = document.getElementById('file-input-video-ops');
+    videoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('video-ops-file-name').innerText = file.name;
+            document.getElementById('btn-video-ops-action').disabled = false;
+        }
+    });
+
+    function processVideoOps() {
+        const file = videoInput.files[0];
+        const action = document.getElementById('video-action').value;
+        if (!file) return;
+        showMediaLoader("Executing Video Processing Pipeline...");
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('action', action);
+        
+        if (action === 'extract_audio') {
+            formData.append('format', document.getElementById('video-extract-fmt').value);
+        } else if (action === 'convert_video') {
+            formData.append('format', document.getElementById('video-convert-fmt').value);
+        } else if (action === 'compress_video') {
+            formData.append('crf', document.getElementById('video-crf').value);
+        }
+
+        fetch('/api/video/process', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideMediaLoader();
+            if (data.error) alert(data.error);
+            else showMediaResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideMediaLoader();
+            alert("Video operation failed: " + err.message);
+        });
+    }
+
+    // Audio Operations logic
+    const audioInput = document.getElementById('file-input-audio-ops');
+    audioInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('audio-ops-file-name').innerText = file.name;
+            document.getElementById('btn-audio-ops-action').disabled = false;
+        }
+    });
+
+    function processAudioOps() {
+        const file = audioInput.files[0];
+        const action = document.getElementById('audio-action').value;
+        if (!file) return;
+        showMediaLoader("Running Audio Filters...");
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('action', action);
+        
+        if (action === 'convert_audio') {
+            formData.append('format', document.getElementById('audio-convert-fmt').value);
+        }
+
+        fetch('/api/video/process', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideMediaLoader();
+            if (data.error) alert(data.error);
+            else showMediaResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideMediaLoader();
+            alert("Audio operation failed: " + err.message);
+        });
+    }
+</script>
+{% endblock %}

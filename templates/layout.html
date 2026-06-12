@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AIOAI Hub - All-in-One AI Utilities{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Outfit', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#090d16',
+                            panel: 'rgba(15, 23, 42, 0.45)',
+                            border: 'rgba(255, 255, 255, 0.08)',
+                            primary: '#7c3aed',
+                            secondary: '#06b6d4',
+                            accent: '#10b981',
+                            text: '#f1f5f9',
+                            muted: '#94a3b8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 58, 237, 0.6);
+        }
+        
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        
+        /* Glow text & shadow effects */
+        .glow-text-purple {
+            text-shadow: 0 0 12px rgba(124, 58, 237, 0.6);
+        }
+        .glow-text-cyan {
+            text-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+        }
+        .glow-shadow-purple {
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.25);
+        }
+        
+        /* Smooth transitions */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-[#050811] text-cyber-text font-sans min-h-screen overflow-x-hidden relative">
+    
+    <!-- Interactive Canvas Background -->
+    <canvas id="bg-canvas" class="absolute top-0 left-0 w-full h-full -z-10 pointer-events-none"></canvas>
+    
+    <div class="flex min-h-screen">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 glass-panel border-r border-cyber-border hidden md:flex flex-col fixed h-screen z-20">
+            <!-- Brand Logo -->
+            <div class="p-6 border-b border-cyber-border flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyber-primary to-cyber-secondary flex items-center justify-center glow-shadow-purple">
+                    <i class="fa-solid var(--logo-icon, fa-brain) text-white text-lg animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-outfit font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-200 to-cyber-secondary bg-clip-text text-transparent">
+                        AIOAI <span class="text-cyber-secondary font-semibold text-xs">HUB</span>
+                    </h1>
+                    <p class="text-[10px] text-cyber-muted font-medium tracking-widest uppercase">Multi-AI Toolkit</p>
+                </div>
+            </div>
+            
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+                <a href="/" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-300 text-sm font-medium {% if request.path == '/' %} bg-gradient-to-r from-cyber-primary/20 to-transparent border-l-4 border-cyber-primary text-white {% else %} text-cyber-muted hover:text-white hover:bg-white/5 {% endif %}">
+                    <i class="fa-solid fa-house text-base w-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="/pdf" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-300 text-sm font-medium {% if request.path == '/pdf' %} bg-gradient-to-r from-cyber-primary/20 to-transparent border-l-4 border-cyber-primary text-white {% else %} text-cyber-muted hover:text-white hover:bg-white/5 {% endif %}">
+                    <i class="fa-solid fa-file-pdf text-base w-5"></i>
+                    <span>PDF Utility Suite</span>
+                </a>
+                
+                <a href="/image" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-300 text-sm font-medium {% if request.path == '/image' %} bg-gradient-to-r from-cyber-primary/20 to-transparent border-l-4 border-cyber-primary text-white {% else %} text-cyber-muted hover:text-white hover:bg-white/5 {% endif %}">
+                    <i class="fa-solid fa-image text-base w-5"></i>
+                    <span>Image Processor</span>
+                </a>
+                
+                <a href="/video" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-300 text-sm font-medium {% if request.path == '/video' %} bg-gradient-to-r from-cyber-primary/20 to-transparent border-l-4 border-cyber-primary text-white {% else %} text-cyber-muted hover:text-white hover:bg-white/5 {% endif %}">
+                    <i class="fa-solid fa-circle-play text-base w-5"></i>
+                    <span>Video & Audio kit</span>
+                </a>
+                
+                <a href="/rag" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-300 text-sm font-medium {% if request.path == '/rag' %} bg-gradient-to-r from-cyber-primary/20 to-transparent border-l-4 border-cyber-primary text-white {% else %} text-cyber-muted hover:text-white hover:bg-white/5 {% endif %}">
+                    <i class="fa-solid fa-robot text-base w-5"></i>
+                    <span>AI PDF RAG</span>
+                </a>
+            </nav>
+            
+            <!-- Sidebar Footer Info -->
+            <div class="p-6 border-t border-cyber-border text-center">
+                <div class="text-[11px] text-cyber-muted">
+                    <span class="inline-block px-2 py-0.5 rounded-full bg-cyber-primary/10 text-cyber-primary border border-cyber-primary/20 font-semibold mb-2">v1.2.0</span>
+                    <p>Designed with ❤️ for Gaurav</p>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Mobile Navigation Menu -->
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#090d16]/90 backdrop-blur-xl border-t border-cyber-border px-4 py-2 flex justify-around items-center">
+            <a href="/" class="flex flex-col items-center py-1 text-cyber-muted hover:text-white transition {% if request.path == '/' %} text-cyber-primary {% endif %}">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[9px] mt-0.5 font-medium">Home</span>
+            </a>
+            <a href="/pdf" class="flex flex-col items-center py-1 text-cyber-muted hover:text-white transition {% if request.path == '/pdf' %} text-cyber-primary {% endif %}">
+                <i class="fa-solid fa-file-pdf text-lg"></i>
+                <span class="text-[9px] mt-0.5 font-medium">PDF</span>
+            </a>
+            <a href="/image" class="flex flex-col items-center py-1 text-cyber-muted hover:text-white transition {% if request.path == '/image' %} text-cyber-primary {% endif %}">
+                <i class="fa-solid fa-image text-lg"></i>
+                <span class="text-[9px] mt-0.5 font-medium">Image</span>
+            </a>
+            <a href="/video" class="flex flex-col items-center py-1 text-cyber-muted hover:text-white transition {% if request.path == '/video' %} text-cyber-primary {% endif %}">
+                <i class="fa-solid fa-circle-play text-lg"></i>
+                <span class="text-[9px] mt-0.5 font-medium">Media</span>
+            </a>
+            <a href="/rag" class="flex flex-col items-center py-1 text-cyber-muted hover:text-white transition {% if request.path == '/rag' %} text-cyber-primary {% endif %}">
+                <i class="fa-solid fa-robot text-lg"></i>
+                <span class="text-[9px] mt-0.5 font-medium">RAG</span>
+            </a>
+        </div>
+        
+        <!-- Main Content Area -->
+        <main class="flex-1 md:ml-64 min-h-screen flex flex-col pb-20 md:pb-6">
+            
+            <!-- Global Header -->
+            <header class="p-6 md:px-8 border-b border-cyber-border glass-panel flex justify-between items-center z-10">
+                <div class="flex items-center space-x-3 md:hidden">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyber-primary to-cyber-secondary flex items-center justify-center">
+                        <i class="fa-solid fa-brain text-white text-sm animate-pulse"></i>
+                    </div>
+                    <span class="font-extrabold font-outfit text-lg">AIOAI HUB</span>
+                </div>
+                <div class="hidden md:block">
+                    <h2 class="text-lg font-semibold text-white">{% block header_title %}Welcome back, Creator{% endblock %}</h2>
+                    <p class="text-xs text-cyber-muted">Dashboard / {% block breadcrumbs %}Home{% endblock %}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-cyber-accent/10 text-cyber-accent border border-cyber-accent/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyber-accent animate-ping"></span>
+                        <span>Server Connected</span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Page Contents -->
+            <section class="flex-1 p-6 md:p-8 fade-in relative max-w-7xl mx-auto w-full">
+                {% block content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+    
+    <!-- Canvas Particle Background Script -->
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+        
+        const particles = [];
+        const maxParticles = Math.min(60, Math.floor((width * height) / 20000));
+        
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.radius = Math.random() * 1.5 + 0.5;
+                this.color = Math.random() > 0.4 ? 'rgba(124, 58, 237, 0.12)' : 'rgba(6, 182, 212, 0.12)';
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x < 0 || this.x > width) this.vx = -this.vx;
+                if (this.y < 0 || this.y > height) this.vy = -this.vy;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+        
+        for (let i = 0; i < maxParticles; i++) {
+            particles.push(new Particle());
+        }
+        
+        // Track mouse
+        let mouse = { x: null, y: null, maxDist: 160 };
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        window.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+        
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw gradient background glow points
+            let grad1 = ctx.createRadialGradient(width * 0.2, height * 0.2, 50, width * 0.2, height * 0.2, 400);
+            grad1.addColorStop(0, 'rgba(124, 58, 237, 0.03)');
+            grad1.addColorStop(1, 'rgba(5, 8, 17, 0)');
+            ctx.fillStyle = grad1;
+            ctx.fillRect(0, 0, width, height);
+            
+            let grad2 = ctx.createRadialGradient(width * 0.8, height * 0.7, 50, width * 0.8, height * 0.7, 500);
+            grad2.addColorStop(0, 'rgba(6, 182, 212, 0.03)');
+            grad2.addColorStop(1, 'rgba(5, 8, 17, 0)');
+            ctx.fillStyle = grad2;
+            ctx.fillRect(0, 0, width, height);
+            
+            particles.forEach((p, idx) => {
+                p.update();
+                p.draw();
+                
+                // Connection lines
+                for (let j = idx + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 150) {
+                        const alpha = (1 - (dist / 150)) * 0.08;
+                        ctx.strokeStyle = `rgba(124, 58, 237, ${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Mouse connect
+                if (mouse.x !== null) {
+                    const dist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+                    if (dist < mouse.maxDist) {
+                        const alpha = (1 - (dist / mouse.maxDist)) * 0.15;
+                        ctx.strokeStyle = `rgba(6, 182, 212, ${alpha})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

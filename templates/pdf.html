@@ -1,0 +1,548 @@
+{% extends 'layout.html' %}
+
+{% block title %}PDF Utility Suite - AIOAI Hub{% endblock %}
+
+{% block header_title %}PDF Utility Suite{% endblock %}
+{% block breadcrumbs %}PDF Suite{% endblock %}
+
+{% block content %}
+<div class="space-y-6 fade-in">
+    <!-- Header banner -->
+    <div class="glass-panel p-6 rounded-2xl border border-cyber-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold font-outfit text-white flex items-center gap-2">
+                <i class="fa-solid fa-file-pdf text-cyber-primary"></i>
+                <span>Document Tools</span>
+            </h2>
+            <p class="text-xs text-cyber-muted mt-1">Split, merge, compress, protect, or convert your PDF documents.</p>
+        </div>
+        
+        <!-- Tab selector -->
+        <div class="flex flex-wrap gap-1 bg-black/45 p-1 rounded-xl border border-cyber-border self-start">
+            <button onclick="switchTab('merge')" id="tab-btn-merge" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-white bg-cyber-primary">Merge</button>
+            <button onclick="switchTab('split')" id="tab-btn-split" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Split</button>
+            <button onclick="switchTab('compress')" id="tab-btn-compress" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Compress</button>
+            <button onclick="switchTab('security')" id="tab-btn-security" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">Security</button>
+            <button onclick="switchTab('convert-to')" id="tab-btn-convert-to" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">PDF → X</button>
+            <button onclick="switchTab('convert-from')" id="tab-btn-convert-from" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg transition text-cyber-muted hover:text-white">X → PDF</button>
+        </div>
+    </div>
+
+    <!-- Active Tab Window -->
+    <div class="glass-panel p-8 rounded-2xl border border-cyber-border min-h-[400px] relative">
+        
+        <!-- Processing Overlay Loader -->
+        <div id="loader-overlay" class="absolute inset-0 bg-[#090d16]/85 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center hidden z-30">
+            <div class="relative w-20 h-20 mb-4">
+                <div class="absolute inset-0 border-4 border-cyber-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-cyber-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p id="loader-text" class="text-sm font-semibold tracking-wider text-white">Processing Document...</p>
+            <p class="text-xs text-cyber-muted mt-1">This might take a few moments depending on file size.</p>
+        </div>
+
+        <!-- Result Card -->
+        <div id="result-card" class="absolute inset-0 bg-[#090d16]/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center hidden z-30 px-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-cyber-accent/15 border border-cyber-accent/30 flex items-center justify-center text-cyber-accent text-2xl mb-4 animate-bounce">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">Process Completed Successfully!</h3>
+            <p id="result-filename" class="text-xs text-cyber-muted mb-6 truncate max-w-md"></p>
+            <div class="flex gap-4">
+                <a id="download-link" href="#" download class="px-6 py-3 rounded-xl bg-cyber-accent hover:bg-cyber-accent/90 text-black font-semibold text-xs transition duration-300 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Download Result
+                </a>
+                <button onclick="resetTool()" class="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-cyber-border text-white text-xs font-semibold transition">
+                    Convert Another
+                </button>
+            </div>
+        </div>
+
+        <!-- Merge Tab -->
+        <div id="tab-content-merge" class="tab-content space-y-6">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-merge">
+                <input type="file" id="file-input-merge" class="absolute inset-0 opacity-0 cursor-pointer" multiple accept=".pdf">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-files-medical text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white">Drag & drop PDFs here or click to browse</p>
+                    <p class="text-xs text-cyber-muted">Supports multiple PDF files</p>
+                </div>
+            </div>
+            
+            <!-- List of selected files -->
+            <div id="file-list-container" class="space-y-2 hidden">
+                <h4 class="text-xs font-semibold text-cyber-muted uppercase tracking-wider">Upload Queue (Drag to reorder not available, use buttons)</h4>
+                <div id="merge-file-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            </div>
+            
+            <button onclick="processMerge()" id="btn-merge-action" class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 disabled:bg-slate-800 disabled:text-cyber-muted text-white rounded-xl text-xs font-semibold transition glow-shadow-purple flex items-center gap-2" disabled>
+                <i class="fa-solid fa-link"></i> Merge PDFs
+            </button>
+        </div>
+
+        <!-- Split Tab -->
+        <div id="tab-content-split" class="tab-content space-y-6 hidden">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-split">
+                <input type="file" id="file-input-split" class="absolute inset-0 opacity-0 cursor-pointer" accept=".pdf">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-scissors text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="split-file-name">Drag & drop PDF here or click to browse</p>
+                    <p class="text-xs text-cyber-muted">Select a single PDF file to partition</p>
+                </div>
+            </div>
+            
+            <div class="max-w-xs space-y-2">
+                <label class="text-xs font-semibold text-cyber-muted uppercase tracking-wider block">Pages per file:</label>
+                <input type="number" id="split-pages" min="1" value="1" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+            </div>
+            
+            <button onclick="processSplit()" id="btn-split-action" class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 disabled:bg-slate-800 disabled:text-cyber-muted text-white rounded-xl text-xs font-semibold transition flex items-center gap-2" disabled>
+                <i class="fa-solid fa-scissors"></i> Split PDF
+            </button>
+        </div>
+
+        <!-- Compress Tab -->
+        <div id="tab-content-compress" class="tab-content space-y-6 hidden">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-compress">
+                <input type="file" id="file-input-compress" class="absolute inset-0 opacity-0 cursor-pointer" accept=".pdf">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-file-contract text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="compress-file-name">Drag & drop PDF here or click to browse</p>
+                    <p class="text-xs text-cyber-muted">Reduces image sizes to 60% JPEG quality</p>
+                </div>
+            </div>
+            
+            <button onclick="processCompress()" id="btn-compress-action" class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 disabled:bg-slate-800 disabled:text-cyber-muted text-white rounded-xl text-xs font-semibold transition flex items-center gap-2" disabled>
+                <i class="fa-solid fa-file-zipper"></i> Compress PDF
+            </button>
+        </div>
+
+        <!-- Security Tab -->
+        <div id="tab-content-security" class="tab-content space-y-6 hidden">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-security">
+                <input type="file" id="file-input-security" class="absolute inset-0 opacity-0 cursor-pointer" accept=".pdf">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-shield-halved text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="security-file-name">Drag & drop PDF here or click to browse</p>
+                    <p class="text-xs text-cyber-muted">Add AES-256 protection or remove encryption</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-cyber-muted uppercase tracking-wider block">Security Action:</label>
+                    <select id="security-action" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                        <option value="protect">🔒 Protect PDF (Encrypt)</option>
+                        <option value="remove">🔓 Remove Password (Decrypt)</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-cyber-muted uppercase tracking-wider block">Password:</label>
+                    <input type="password" id="security-password" placeholder="Enter password" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                </div>
+            </div>
+            
+            <button onclick="processSecurity()" id="btn-security-action" class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 disabled:bg-slate-800 disabled:text-cyber-muted text-white rounded-xl text-xs font-semibold transition flex items-center gap-2" disabled>
+                <i class="fa-solid fa-key"></i> Apply Security
+            </button>
+        </div>
+
+        <!-- PDF to X Tab -->
+        <div id="tab-content-convert-to" class="tab-content space-y-6 hidden">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-convert-to">
+                <input type="file" id="file-input-convert-to" class="absolute inset-0 opacity-0 cursor-pointer" accept=".pdf">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-file-export text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="convert-to-file-name">Drag & drop PDF here or click to browse</p>
+                    <p class="text-xs text-cyber-muted">Convert PDF to other formats</p>
+                </div>
+            </div>
+            
+            <div class="max-w-xs space-y-2">
+                <label class="text-xs font-semibold text-cyber-muted uppercase tracking-wider block">Target Format:</label>
+                <select id="convert-to-mode" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                    <option value="pdf_to_word">📄 DOCX (Word Document)</option>
+                    <option value="pdf_to_excel">📊 XLSX (Excel Spreadsheet)</option>
+                    <option value="pdf_to_ppt">📽 PPTX (PowerPoint Presentation)</option>
+                    <option value="pdf_to_images">🖼 Images (ZIP of PNG/JPG Pages)</option>
+                </select>
+            </div>
+            
+            <button onclick="processConvertTo()" id="btn-convert-to-action" class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 disabled:bg-slate-800 disabled:text-cyber-muted text-white rounded-xl text-xs font-semibold transition flex items-center gap-2" disabled>
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> Convert PDF
+            </button>
+        </div>
+
+        <!-- X to PDF Tab -->
+        <div id="tab-content-convert-from" class="tab-content space-y-6 hidden">
+            <div class="border-2 border-dashed border-cyber-border hover:border-cyber-primary/40 rounded-xl p-8 text-center transition cursor-pointer relative" id="drop-zone-convert-from">
+                <input type="file" id="file-input-convert-from" class="absolute inset-0 opacity-0 cursor-pointer" multiple accept=".docx, .doc, .xlsx, .xls, .pptx, .ppt, .png, .jpg, .jpeg, .bmp, .webp">
+                <div class="space-y-3 pointer-events-none">
+                    <i class="fa-solid fa-file-import text-3xl text-cyber-primary/75"></i>
+                    <p class="text-sm font-semibold text-white" id="convert-from-file-name">Drag & drop Word/Excel/PPT/Images here or click to browse</p>
+                    <p class="text-xs text-cyber-muted">Supports multiple files for Images → PDF</p>
+                </div>
+            </div>
+            
+            <div class="max-w-xs space-y-2">
+                <label class="text-xs font-semibold text-cyber-muted uppercase tracking-wider block">Conversion Mode:</label>
+                <select id="convert-from-mode" class="w-full px-4 py-2.5 rounded-xl bg-black/45 border border-cyber-border focus:border-cyber-primary text-white text-sm outline-none">
+                    <option value="word_to_pdf">📄 Word to PDF</option>
+                    <option value="excel_to_pdf">📊 Excel to PDF</option>
+                    <option value="ppt_to_pdf">📽 PPT to PDF</option>
+                    <option value="images_to_pdf">🖼 Images to PDF</option>
+                </select>
+            </div>
+            
+            <button onclick="processConvertFrom()" id="btn-convert-from-action" class="px-6 py-3 bg-cyber-primary hover:bg-cyber-primary/95 disabled:bg-slate-800 disabled:text-cyber-muted text-white rounded-xl text-xs font-semibold transition flex items-center gap-2" disabled>
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> Convert to PDF
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Tab Switching
+    function switchTab(tabId) {
+        // Reset state
+        resetTool();
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('bg-cyber-primary', 'text-white');
+            btn.classList.add('text-cyber-muted');
+        });
+        document.getElementById(`tab-btn-${tabId}`).classList.remove('text-cyber-muted');
+        document.getElementById(`tab-btn-${tabId}`).classList.add('bg-cyber-primary', 'text-white');
+        
+        // Hide all contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        // Show target
+        document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+    }
+
+    // Overlay Controls
+    const loaderOverlay = document.getElementById('loader-overlay');
+    const loaderText = document.getElementById('loader-text');
+    const resultCard = document.getElementById('result-card');
+    const resultFilename = document.getElementById('result-filename');
+    const downloadLink = document.getElementById('download-link');
+
+    function showLoader(msg) {
+        loaderText.innerText = msg;
+        loaderOverlay.classList.remove('hidden');
+    }
+    function hideLoader() {
+        loaderOverlay.classList.add('hidden');
+    }
+    function showResult(url, name) {
+        downloadLink.href = url;
+        resultFilename.innerText = name;
+        resultCard.classList.remove('hidden');
+    }
+    function resetTool() {
+        resultCard.classList.add('hidden');
+        hideLoader();
+        
+        // Clear files queue
+        mergeQueue = [];
+        updateMergeQueueUI();
+        
+        // Clear inputs
+        document.getElementById('file-input-merge').value = "";
+        document.getElementById('file-input-split').value = "";
+        document.getElementById('file-input-compress').value = "";
+        document.getElementById('file-input-security').value = "";
+        document.getElementById('file-input-convert-to').value = "";
+        document.getElementById('file-input-convert-from').value = "";
+        
+        // Reset label texts
+        document.getElementById('split-file-name').innerText = "Drag & drop PDF here or click to browse";
+        document.getElementById('compress-file-name').innerText = "Drag & drop PDF here or click to browse";
+        document.getElementById('security-file-name').innerText = "Drag & drop PDF here or click to browse";
+        document.getElementById('convert-to-file-name').innerText = "Drag & drop PDF here or click to browse";
+        document.getElementById('convert-from-file-name').innerText = "Drag & drop Word/Excel/PPT/Images here or click to browse";
+        
+        // Disable action buttons
+        document.getElementById('btn-merge-action').disabled = true;
+        document.getElementById('btn-split-action').disabled = true;
+        document.getElementById('btn-compress-action').disabled = true;
+        document.getElementById('btn-security-action').disabled = true;
+        document.getElementById('btn-convert-to-action').disabled = true;
+        document.getElementById('btn-convert-from-action').disabled = true;
+    }
+
+    // Merge logic
+    let mergeQueue = [];
+    const mergeInput = document.getElementById('file-input-merge');
+    const mergeListContainer = document.getElementById('file-list-container');
+    const mergeList = document.getElementById('merge-file-list');
+
+    mergeInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(f => {
+            if (f.type === "application/pdf") {
+                mergeQueue.push(f);
+            }
+        });
+        updateMergeQueueUI();
+    });
+
+    function updateMergeQueueUI() {
+        mergeList.innerHTML = "";
+        if (mergeQueue.length > 0) {
+            mergeListContainer.classList.remove('hidden');
+            document.getElementById('btn-merge-action').disabled = mergeQueue.length < 2;
+            mergeQueue.forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-3.5 bg-black/30 border border-cyber-border rounded-xl text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2 truncate">
+                        <span class="text-cyber-muted font-bold">${idx + 1}.</span>
+                        <i class="fa-solid fa-file-pdf text-cyber-primary"></i>
+                        <span class="text-white font-medium truncate">${file.name}</span>
+                        <span class="text-[10px] text-cyber-muted">(${(file.size/1024/1024).toFixed(2)} MB)</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 flex-shrink-0">
+                        <button onclick="moveInQueue(${idx}, -1)" class="w-6 h-6 rounded bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition"><i class="fa-solid fa-chevron-up"></i></button>
+                        <button onclick="moveInQueue(${idx}, 1)" class="w-6 h-6 rounded bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition"><i class="fa-solid fa-chevron-down"></i></button>
+                        <button onclick="removeFromQueue(${idx})" class="w-6 h-6 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                mergeList.appendChild(item);
+            });
+        } else {
+            mergeListContainer.classList.add('hidden');
+            document.getElementById('btn-merge-action').disabled = true;
+        }
+    }
+
+    function moveInQueue(idx, direction) {
+        const newIdx = idx + direction;
+        if (newIdx >= 0 && newIdx < mergeQueue.length) {
+            const temp = mergeQueue[idx];
+            mergeQueue[idx] = mergeQueue[newIdx];
+            mergeQueue[newIdx] = temp;
+            updateMergeQueueUI();
+        }
+    }
+
+    function removeFromQueue(idx) {
+        mergeQueue.splice(idx, 1);
+        updateMergeQueueUI();
+    }
+
+    function processMerge() {
+        if (mergeQueue.length < 2) return;
+        showLoader("Merging PDF Files...");
+        const formData = new FormData();
+        mergeQueue.forEach(file => {
+            formData.append('files', file);
+        });
+        
+        fetch('/api/pdf/merge', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideLoader();
+            if (data.error) alert(data.error);
+            else showResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideLoader();
+            alert("Error merging: " + err.message);
+        });
+    }
+
+    // Split Setup
+    const splitInput = document.getElementById('file-input-split');
+    splitInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('split-file-name').innerText = file.name;
+            document.getElementById('btn-split-action').disabled = false;
+        }
+    });
+    function processSplit() {
+        const file = splitInput.files[0];
+        const pages = document.getElementById('split-pages').value;
+        if (!file) return;
+        showLoader("Splitting PDF File...");
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('pages', pages);
+        
+        fetch('/api/pdf/split', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideLoader();
+            if (data.error) alert(data.error);
+            else showResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideLoader();
+            alert("Error splitting: " + err.message);
+        });
+    }
+
+    // Compress Setup
+    const compressInput = document.getElementById('file-input-compress');
+    compressInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('compress-file-name').innerText = file.name;
+            document.getElementById('btn-compress-action').disabled = false;
+        }
+    });
+    function processCompress() {
+        const file = compressInput.files[0];
+        if (!file) return;
+        showLoader("Compressing PDF File...");
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        fetch('/api/pdf/compress', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideLoader();
+            if (data.error) alert(data.error);
+            else showResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideLoader();
+            alert("Error compressing: " + err.message);
+        });
+    }
+
+    // Security Setup
+    const securityInput = document.getElementById('file-input-security');
+    securityInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('security-file-name').innerText = file.name;
+            document.getElementById('btn-security-action').disabled = false;
+        }
+    });
+    function processSecurity() {
+        const file = securityInput.files[0];
+        const action = document.getElementById('security-action').value;
+        const password = document.getElementById('security-password').value;
+        if (!file) return;
+        if (!password) {
+            alert("Please enter a password.");
+            return;
+        }
+        showLoader("Applying Security Modifications...");
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('action', action);
+        formData.append('password', password);
+        
+        fetch('/api/pdf/password', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideLoader();
+            if (data.error) alert(data.error);
+            else showResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideLoader();
+            alert("Security Error: " + err.message);
+        });
+    }
+
+    // PDF to X Convert Setup
+    const convertToInput = document.getElementById('file-input-convert-to');
+    convertToInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('convert-to-file-name').innerText = file.name;
+            document.getElementById('btn-convert-to-action').disabled = false;
+        }
+    });
+    function processConvertTo() {
+        const file = convertToInput.files[0];
+        const mode = document.getElementById('convert-to-mode').value;
+        if (!file) return;
+        showLoader("Converting Document...");
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('mode', mode);
+        
+        fetch('/api/pdf/convert', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideLoader();
+            if (data.error) alert(data.error);
+            else showResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideLoader();
+            alert("Conversion Error: " + err.message);
+        });
+    }
+
+    // X to PDF Convert Setup
+    const convertFromInput = document.getElementById('file-input-convert-from');
+    convertFromInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files.length > 0) {
+            document.getElementById('convert-from-file-name').innerText = files.length === 1 ? files[0].name : `${files.length} files selected`;
+            document.getElementById('btn-convert-from-action').disabled = false;
+        }
+    });
+    function processConvertFrom() {
+        const files = convertFromInput.files;
+        const mode = document.getElementById('convert-from-mode').value;
+        if (files.length === 0) return;
+        showLoader("Generating PDF...");
+        
+        const formData = new FormData();
+        if (mode === 'images_to_pdf') {
+            for (let i=0; i<files.length; i++) {
+                formData.append('file', files[i]);
+            }
+        } else {
+            formData.append('file', files[0]);
+        }
+        formData.append('mode', mode);
+        
+        fetch('/api/pdf/convert', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideLoader();
+            if (data.error) alert(data.error);
+            else showResult(data.download_url, data.filename);
+        })
+        .catch(err => {
+            hideLoader();
+            alert("Generation Error: " + err.message);
+        });
+    }
+</script>
+{% endblock %}

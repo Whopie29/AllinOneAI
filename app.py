@@ -460,7 +460,7 @@ def api_rag_upload():
         if not file:
             return jsonify({'error': 'No file uploaded'}), 400
             
-        sess_id = session.get('session_id')
+        sess_id = request.form.get('session_id') or session.get('session_id')
         if not sess_id:
             sess_id = str(uuid.uuid4())
             session['session_id'] = sess_id
@@ -490,13 +490,13 @@ def api_rag_upload():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
+ 
 @app.route('/api/rag/query', methods=['POST'])
 def api_rag_query():
     try:
         from rag.chain import answer_question
         question = request.json.get('question')
-        sess_id = session.get('session_id')
+        sess_id = request.json.get('session_id') or session.get('session_id')
         
         if not sess_id or sess_id not in rag_sessions:
             return jsonify({'error': 'Please upload a PDF first.'}), 400
@@ -506,14 +506,14 @@ def api_rag_query():
         return jsonify({'answer': answer})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+ 
 @app.route('/api/rag/action', methods=['POST'])
 def api_rag_action():
     try:
         from rag.chain import summarize, extract_key_points, detect_topics, generate_quiz, generate_flashcards
         action = request.json.get('action') # summary, keypoints, topics, quiz, flashcards
         num_items = int(request.json.get('num_items', 5))
-        sess_id = session.get('session_id')
+        sess_id = request.json.get('session_id') or session.get('session_id')
         
         if not sess_id or sess_id not in rag_sessions:
             return jsonify({'error': 'Please upload a PDF first.'}), 400

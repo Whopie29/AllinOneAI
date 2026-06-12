@@ -27,6 +27,12 @@ class SelfHealingEmbeddings:
                 pass
 
     def _get_local(self):
+        if os.environ.get("RENDER") == "true" or os.environ.get("render") == "true":
+            raise RuntimeError(
+                "Hugging Face API connection failed. Local offline embeddings fallback is disabled "
+                "on Render to prevent 512MB memory limit crashes. Please verify that your HUGGINGFACE_API_KEY "
+                "environment variable is configured correctly on Render."
+            )
         if not self._local_embeddings:
             from langchain_community.embeddings import HuggingFaceEmbeddings
             self._local_embeddings = HuggingFaceEmbeddings(model_name=self.model_name)

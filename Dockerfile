@@ -26,8 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements file first to leverage Docker cache
 COPY requirements.txt .
 
-# Install CPU version of PyTorch to keep image size small and avoid build timeouts
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# Install CPU version of PyTorch and Torchvision together to ensure version compatibility
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
 
 # Install other Python packages
 RUN pip install --no-cache-dir -r requirements.txt

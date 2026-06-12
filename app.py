@@ -18,21 +18,7 @@ sys.path.append(os.path.join(ROOT_DIR, 'Image', 'operations'))
 sys.path.append(os.path.join(ROOT_DIR, 'VIDEO', 'operations'))
 sys.path.append(os.path.join(ROOT_DIR, 'PDF RAG'))
 
-# Now import operations
-from pdf_ops import merge_pdfs, split_pdf, compress_pdf, protect_pdf, remove_password
-from convert import (
-    pdf_to_word, pdf_to_excel, pdf_to_ppt, pdf_to_images,
-    word_to_pdf, excel_to_pdf, ppt_to_pdf, images_to_pdf
-)
-from img_ops import resize_image, crop_image, compress_image, convert_image, adjust_brightness_contrast, add_watermark, compress_image_to_size
-from ai_ops import remove_background, change_background_color, image_to_text
-from video_ops import mute_video, extract_audio, convert_video, compress_video
-from audio_ops import audio_to_text, reduce_noise, convert_audio
-from transcript import transcribe_to_txt, transcribe_to_srt, transcribe_with_speakers
-
-from rag.loader import load_and_chunk
-from rag.embeddings import build_vectorstore, get_retriever
-from rag.chain import answer_question, summarize, extract_key_points, detect_topics, generate_quiz, generate_flashcards
+# Operations are lazily imported inside route functions to optimize startup memory consumption.
 
 app = Flask(__name__)
 app.secret_key = "aioai_secret_key_session"
@@ -78,6 +64,7 @@ def rag_page():
 @app.route('/api/pdf/merge', methods=['POST'])
 def api_pdf_merge():
     try:
+        from pdf_ops import merge_pdfs
         files = request.files.getlist('files')
         if len(files) < 2:
             return jsonify({'error': 'Please select at least 2 files'}), 400
@@ -105,6 +92,7 @@ def api_pdf_merge():
 @app.route('/api/pdf/split', methods=['POST'])
 def api_pdf_split():
     try:
+        from pdf_ops import split_pdf
         file = request.files.get('file')
         pages = int(request.form.get('pages', 1))
         if not file:
@@ -137,6 +125,7 @@ def api_pdf_split():
 @app.route('/api/pdf/compress', methods=['POST'])
 def api_pdf_compress():
     try:
+        from pdf_ops import compress_pdf
         file = request.files.get('file')
         if not file:
             return jsonify({'error': 'No file uploaded'}), 400
@@ -159,6 +148,7 @@ def api_pdf_compress():
 @app.route('/api/pdf/password', methods=['POST'])
 def api_pdf_password():
     try:
+        from pdf_ops import protect_pdf, remove_password
         file = request.files.get('file')
         action = request.form.get('action') # protect or remove
         password = request.form.get('password')
@@ -189,6 +179,10 @@ def api_pdf_password():
 @app.route('/api/pdf/convert', methods=['POST'])
 def api_pdf_convert():
     try:
+        from convert import (
+            pdf_to_word, pdf_to_excel, pdf_to_ppt, pdf_to_images,
+            word_to_pdf, excel_to_pdf, ppt_to_pdf, images_to_pdf
+        )
         file = request.files.get('file')
         mode = request.form.get('mode') # pdf_to_word, pdf_to_excel, pdf_to_ppt, pdf_to_images, word_to_pdf, excel_to_pdf, ppt_to_pdf, images_to_pdf
         
@@ -275,6 +269,8 @@ def api_pdf_convert():
 @app.route('/api/image/process', methods=['POST'])
 def api_image_process():
     try:
+        from img_ops import resize_image, crop_image, compress_image, convert_image, adjust_brightness_contrast, add_watermark, compress_image_to_size
+        from ai_ops import remove_background, change_background_color, image_to_text
         file = request.files.get('file')
         action = request.form.get('action') # resize, crop, compress, convert, adjust, watermark, remove_bg, change_bg, ocr
         
@@ -370,6 +366,9 @@ def api_image_process():
 @app.route('/api/video/process', methods=['POST'])
 def api_video_process():
     try:
+        from video_ops import mute_video, extract_audio, convert_video, compress_video
+        from audio_ops import audio_to_text, reduce_noise, convert_audio
+        from transcript import transcribe_to_txt, transcribe_to_srt, transcribe_with_speakers
         file = request.files.get('file')
         action = request.form.get('action') # mute, extract_audio, convert_video, compress_video, noise_reduction, convert_audio, transcribe
         
@@ -455,6 +454,8 @@ def api_video_process():
 @app.route('/api/rag/upload', methods=['POST'])
 def api_rag_upload():
     try:
+        from rag.loader import load_and_chunk
+        from rag.embeddings import build_vectorstore, get_retriever
         file = request.files.get('file')
         if not file:
             return jsonify({'error': 'No file uploaded'}), 400
@@ -491,6 +492,7 @@ def api_rag_upload():
 @app.route('/api/rag/query', methods=['POST'])
 def api_rag_query():
     try:
+        from rag.chain import answer_question
         question = request.json.get('question')
         sess_id = session.get('session_id')
         
@@ -506,6 +508,7 @@ def api_rag_query():
 @app.route('/api/rag/action', methods=['POST'])
 def api_rag_action():
     try:
+        from rag.chain import summarize, extract_key_points, detect_topics, generate_quiz, generate_flashcards
         action = request.json.get('action') # summary, keypoints, topics, quiz, flashcards
         num_items = int(request.json.get('num_items', 5))
         sess_id = session.get('session_id')

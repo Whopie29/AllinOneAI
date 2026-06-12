@@ -1,11 +1,12 @@
 """Embeddings and FAISS vector store management."""
 import os
 from langchain_community.vectorstores import FAISS
+from langchain_core.embeddings import Embeddings
 
 _EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
-class SelfHealingEmbeddings:
+class SelfHealingEmbeddings(Embeddings):
     """
     Embeddings wrapper that attempts cloud-based API inference first (to save server memory),
     but automatically falls back to local offline embeddings if a network error occurs.

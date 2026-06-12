@@ -487,6 +487,8 @@ def api_rag_upload():
         
         return jsonify({'success': True, 'pdf_name': file.filename})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/rag/query', methods=['POST'])

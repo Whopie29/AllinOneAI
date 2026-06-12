@@ -39,8 +39,8 @@ RUN pip install --no-cache-dir gunicorn
 # Copy the rest of the application code
 COPY . .
 
-# Expose port 10000 for Render
-EXPOSE 10000
+# Expose ports
+EXPOSE 10000 7860
 
-# Run the Flask application with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--timeout", "180", "app:app"]
+# Run the Flask application with gunicorn using the PORT environment variable (default to 7860)
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-7860} --timeout 180 app:app"]

@@ -1,8 +1,34 @@
+<div align="center">
+
 # 🚀 AllinOneAI
 
-A powerful all-in-one Flask web application that combines **PDF tools**, **image processing**, **video & audio tools**, and **AI-powered PDF RAG querying** into a single unified interface.
+**Every file tool you actually need — PDFs, images, video & audio, and an AI research assistant — in one Flask app.**
+
+No juggling five different SaaS tabs. No uploading your files to a dozen sketchy converters.
+One clean interface, running locally or in your own container.
+
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-Backend-000000?style=for-the-badge&logo=flask&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-RAG-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)
+![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-F55036?style=for-the-badge)
+
+[Features](#-features) · [Tech Stack](#️-tech-stack) · [Getting Started](#-local-setup) · [Docker](#-docker) · [Deploy](#️-deploy-on-hugging-face-spaces)
+
+</div>
 
 ---
+
+## 📖 Overview
+
+**AllinOneAI** bundles four toolkits behind a single Flask server and a shared UI:
+
+- 📄 **PDF Tools** — merge, split, compress, encrypt, and convert to/from Word, Excel, PowerPoint, and images
+- 🖼️ **Image Tools** — resize, crop, compress, watermark, AI background removal, and OCR
+- 🎬 **Video & Audio Tools** — mute, extract audio, convert, compress, and Whisper-powered transcription
+- 🤖 **PDF RAG** — chat with a PDF, summarize it, quiz yourself on it, or generate flashcards, powered by Groq's LLaMA 3.3 70B
+
+Each toolkit is its own module with its own operations folder, so the codebase stays organized as it grows — but the person using it just sees one app.
 
 ## ✨ Features
 
@@ -28,11 +54,11 @@ A powerful all-in-one Flask web application that combines **PDF tools**, **image
 |---|---|
 | Resize | Resize with optional aspect ratio preservation |
 | Crop | Crop to specified pixel coordinates |
-| Compress | Reduce JPEG quality for smaller file size |
+| Compress | Reduce JPEG quality for a smaller file size |
 | Compress to Size | Binary-search compression to hit a target file size (KB) |
 | Convert Format | Convert between JPG, PNG, and WEBP |
 | Brightness & Contrast | Adjust image brightness and contrast |
-| Watermark | Add tiled diagonal text watermark |
+| Watermark | Add a tiled diagonal text watermark |
 | Remove Background | AI-powered background removal using `rembg` |
 | Change Background Color | Remove background and replace with a solid color |
 | Image to Text (OCR) | Extract text from images using EasyOCR |
@@ -40,7 +66,7 @@ A powerful all-in-one Flask web application that combines **PDF tools**, **image
 ### 🎬 Video & Audio Tools
 | Feature | Description |
 |---|---|
-| Mute Video | Strip audio track from a video file |
+| Mute Video | Strip the audio track from a video file |
 | Extract Audio | Extract audio from video as MP3 |
 | Convert Video | Convert between video formats via FFmpeg |
 | Compress Video | Compress video using H.264 CRF encoding |
@@ -48,7 +74,7 @@ A powerful all-in-one Flask web application that combines **PDF tools**, **image
 | Noise Reduction | Reduce background noise from audio using `noisereduce` |
 | Convert Audio | Convert between audio formats via FFmpeg |
 | Transcribe to TXT | Transcribe video/audio to a plain text file |
-| Transcribe to SRT | Generate `.srt` subtitle file from video/audio |
+| Transcribe to SRT | Generate an `.srt` subtitle file from video/audio |
 | Speaker Identification | Basic speaker-turn detection from transcription segments |
 
 ### 🤖 PDF RAG (AI Q&A)
@@ -68,11 +94,11 @@ Powered by **LangChain + Groq (LLaMA 3.3 70B)** with **FAISS** vector search and
 ## 🗂️ Project Structure
 
 ```
-aioai/
+AllinOneAI/
 ├── app.py                  # Main Flask application (unified entry point)
 ├── requirements.txt        # Python dependencies
 ├── Dockerfile              # Docker container configuration
-├── .env                    # Environment variables (GROQ_API_KEY, etc.)
+├── .env                    # Environment variables (GROQ_API_KEY, etc.) — not committed
 │
 ├── PDF/
 │   └── operations/
@@ -109,12 +135,14 @@ aioai/
     └── outputs/            # Processed output files
 ```
 
+> Each module (`PDF`, `Image`, `VIDEO`, `PDF RAG`) also ships its own standalone `app.py` and README, so you can run any single toolkit on its own if you don't need the full suite.
+
 ---
 
 ## ⚙️ Prerequisites
 
 - Python 3.10+
-- [FFmpeg](https://ffmpeg.org/download.html) installed and available in `PATH`
+- [FFmpeg](https://ffmpeg.org/download.html) installed and available on `PATH`
 - LibreOffice (Linux only, for DOCX/PPTX → PDF conversion)
 - A [Groq API key](https://console.groq.com/) for the PDF RAG feature
 
@@ -125,8 +153,8 @@ aioai/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/aioai.git
-cd aioai
+git clone https://github.com/Whopie29/AllinOneAI.git
+cd AllinOneAI
 ```
 
 ### 2. Create and activate a virtual environment
@@ -146,7 +174,7 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 ```
 
-> PyTorch is installed separately first to ensure CPU-only version compatibility.
+> PyTorch is installed separately first to ensure the CPU-only build is used, avoiding a large CUDA download.
 
 ### 4. Configure environment variables
 
@@ -171,8 +199,8 @@ The app will be available at `http://localhost:5000`.
 ### Build and run locally
 
 ```bash
-docker build -t aioai .
-docker run -p 7860:7860 -e GROQ_API_KEY=your_key_here aioai
+docker build -t allinoneai .
+docker run -p 7860:7860 -e GROQ_API_KEY=your_key_here allinoneai
 ```
 
 The app will be available at `http://localhost:7860`.
@@ -180,10 +208,10 @@ The app will be available at `http://localhost:7860`.
 ### What the Dockerfile does
 
 - Base image: `python:3.12-slim`
-- Installs system dependencies: `libreoffice`, `ffmpeg`, `libgl1`, `libglib2.0-0`
-- Installs CPU PyTorch separately for compatibility
-- Serves the app via **Gunicorn** with a 180-second timeout
-- Exposes ports `7860` (Hugging Face Spaces) and `10000`
+- Installs system dependencies: `libreoffice`, `ffmpeg`, `libgl1`, `libglib2.0-0`, `libgomp1`, `build-essential`
+- Installs CPU-only PyTorch separately for compatibility and image size
+- Serves the app with **Gunicorn** using a 180-second timeout
+- Exposes ports `7860` (Hugging Face Spaces default) and `10000`
 
 ---
 
@@ -195,7 +223,7 @@ This project is ready to deploy on [Hugging Face Spaces](https://huggingface.co/
 2. Push this repository to the Space
 3. Add your `GROQ_API_KEY` as a Space secret under **Settings → Repository secrets**
 
-The `app_port: 7860` is already configured in the Space metadata.
+The app listens on the `PORT` environment variable, defaulting to `7860` if it isn't set.
 
 ---
 
@@ -204,7 +232,7 @@ The `app_port: 7860` is already configured in the Space metadata.
 | Variable | Required | Description |
 |---|---|---|
 | `GROQ_API_KEY` | Yes (for RAG) | Groq API key for LLaMA 3.3 70B inference |
-| `PORT` | No | Server port (defaults to `7860`) |
+| `PORT` | No | Server port (defaults to `7860` when run via the Dockerfile) |
 
 ---
 
@@ -223,6 +251,26 @@ The `app_port: 7860` is already configured in the Space metadata.
 
 ---
 
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
 ## 📝 License
 
-This project is open source and available under the [MIT License](LICENSE).
+No `LICENSE` file is currently included in this repository. If you intend for it to be open source, add one — [MIT](https://choosealicense.com/licenses/mit/) is a common, permissive choice — so others know exactly how they're allowed to use the code.
+
+---
+
+<div align="center">
+
+Built for the "I just need one thing done to this file" moment.
+
+</div>

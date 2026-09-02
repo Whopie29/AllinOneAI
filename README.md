@@ -1,27 +1,34 @@
-<div align="center">
+<!-- Animated Header -->
+<p align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:00F7FF,50:8A2BE2,100:FF00E5&height=230&section=header&text=AllinOneAI&fontSize=65&fontColor=ffffff&animation=twinkling&fontAlignY=38&desc=PDFs%20%C2%B7%20Images%20%C2%B7%20Video%20%2F%20Audio%20%C2%B7%20AI%20Research%20Assistant&descAlignY=58&descSize=16"/>
+</p>
 
-# 🚀 AllinOneAI
+<p align="center">
+<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=22&duration=3000&pause=900&color=00F7FF&center=true&vCenter=true&width=800&lines=Every+file+tool+you+actually+need%2C+in+one+app;Merge%2C+Split%2C+Compress+PDFs+%F0%9F%93%84;AI+Background+Removal+%26+OCR+%F0%9F%96%BC%EF%B8%8F;Whisper-Powered+Transcription+%F0%9F%8E%99%EF%B8%8F;Chat+with+your+PDF+via+RAG+%F0%9F%A4%96"/>
+</p>
 
-**Every file tool you actually need — PDFs, images, video & audio, and an AI research assistant — in one Flask app.**
+<p align="center">
+<img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+<img src="https://img.shields.io/badge/Flask-Backend-000000?style=for-the-badge&logo=flask&logoColor=white"/>
+<img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
+<img src="https://img.shields.io/badge/LangChain-RAG-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white"/>
+<img src="https://img.shields.io/badge/Groq-LLaMA_3.3_70B-F55036?style=for-the-badge"/>
+</p>
 
-No juggling five different SaaS tabs. No uploading your files to a dozen sketchy converters.
-One clean interface, running locally or in your own container.
-
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-Backend-000000?style=for-the-badge&logo=flask&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![LangChain](https://img.shields.io/badge/LangChain-RAG-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)
-![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-F55036?style=for-the-badge)
-
-[Features](#-features) · [Tech Stack](#️-tech-stack) · [Getting Started](#-local-setup) · [Docker](#-docker) · [Deploy](#️-deploy-on-hugging-face-spaces)
-
-</div>
+<p align="center">
+<a href="#-overview">Overview</a> •
+<a href="#-features">Features</a> •
+<a href="#️-tech-stack">Tech Stack</a> •
+<a href="#-local-setup">Getting Started</a> •
+<a href="#-docker">Docker</a> •
+<a href="#️-deploy-on-hugging-face-spaces">Deploy</a>
+</p>
 
 ---
 
 ## 📖 Overview
 
-**AllinOneAI** bundles four toolkits behind a single Flask server and a shared UI:
+**AllinOneAI** bundles four toolkits behind a single Flask server and one shared UI — no juggling five different SaaS tabs, no uploading your files to a dozen sketchy converters:
 
 - 📄 **PDF Tools** — merge, split, compress, encrypt, and convert to/from Word, Excel, PowerPoint, and images
 - 🖼️ **Image Tools** — resize, crop, compress, watermark, AI background removal, and OCR
@@ -30,9 +37,12 @@ One clean interface, running locally or in your own container.
 
 Each toolkit is its own module with its own operations folder, so the codebase stays organized as it grows — but the person using it just sees one app.
 
+---
+
 ## ✨ Features
 
 ### 📄 PDF Tools
+
 | Feature | Description |
 |---|---|
 | Merge PDFs | Combine multiple PDF files into one |
@@ -50,6 +60,7 @@ Each toolkit is its own module with its own operations folder, so the codebase s
 | Images → PDF | Combine multiple images into a single PDF |
 
 ### 🖼️ Image Tools
+
 | Feature | Description |
 |---|---|
 | Resize | Resize with optional aspect ratio preservation |
@@ -64,6 +75,7 @@ Each toolkit is its own module with its own operations folder, so the codebase s
 | Image to Text (OCR) | Extract text from images using EasyOCR |
 
 ### 🎬 Video & Audio Tools
+
 | Feature | Description |
 |---|---|
 | Mute Video | Strip the audio track from a video file |
@@ -78,6 +90,7 @@ Each toolkit is its own module with its own operations folder, so the codebase s
 | Speaker Identification | Basic speaker-turn detection from transcription segments |
 
 ### 🤖 PDF RAG (AI Q&A)
+
 Powered by **LangChain + Groq (LLaMA 3.3 70B)** with **FAISS** vector search and **sentence-transformers** embeddings.
 
 | Feature | Description |
@@ -150,15 +163,19 @@ AllinOneAI/
 
 ## 🚀 Local Setup
 
-### 1. Clone the repository
+<table>
+<tr><td width="6%" align="center"><b>1</b></td><td>
 
+**Clone the repository**
 ```bash
 git clone https://github.com/Whopie29/AllinOneAI.git
 cd AllinOneAI
 ```
 
-### 2. Create and activate a virtual environment
+</td></tr>
+<tr><td align="center"><b>2</b></td><td>
 
+**Create and activate a virtual environment**
 ```bash
 python -m venv venv
 # Windows
@@ -167,51 +184,58 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 3. Install dependencies
+</td></tr>
+<tr><td align="center"><b>3</b></td><td>
 
+**Install dependencies**
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 ```
-
 > PyTorch is installed separately first to ensure the CPU-only build is used, avoiding a large CUDA download.
 
-### 4. Configure environment variables
+</td></tr>
+<tr><td align="center"><b>4</b></td><td>
 
-Create a `.env` file in the project root:
-
-```env
+**Configure environment variables** — create a `.env` file in the project root:
+```
 GROQ_API_KEY=your_groq_api_key_here
 ```
 
-### 5. Run the application
+</td></tr>
+<tr><td align="center"><b>5</b></td><td>
 
+**Run the application**
 ```bash
 python app.py
 ```
+The app will be available at **http://localhost:5000**
 
-The app will be available at `http://localhost:5000`.
+</td></tr>
+</table>
 
 ---
 
 ## 🐳 Docker
 
-### Build and run locally
-
+**Build and run locally**
 ```bash
 docker build -t allinoneai .
 docker run -p 7860:7860 -e GROQ_API_KEY=your_key_here allinoneai
 ```
+The app will be available at **http://localhost:7860**
 
-The app will be available at `http://localhost:7860`.
-
-### What the Dockerfile does
+<details>
+<summary><b>What the Dockerfile does</b></summary>
+<br>
 
 - Base image: `python:3.12-slim`
 - Installs system dependencies: `libreoffice`, `ffmpeg`, `libgl1`, `libglib2.0-0`, `libgomp1`, `build-essential`
 - Installs CPU-only PyTorch separately for compatibility and image size
 - Serves the app with **Gunicorn** using a 180-second timeout
 - Exposes ports `7860` (Hugging Face Spaces default) and `10000`
+
+</details>
 
 ---
 
@@ -230,7 +254,7 @@ The app listens on the `PORT` environment variable, defaulting to `7860` if it i
 ## 🔑 Environment Variables
 
 | Variable | Required | Description |
-|---|---|---|
+|---|:---:|---|
 | `GROQ_API_KEY` | Yes (for RAG) | Groq API key for LLaMA 3.3 70B inference |
 | `PORT` | No | Server port (defaults to `7860` when run via the Dockerfile) |
 
@@ -269,8 +293,8 @@ No `LICENSE` file is currently included in this repository. If you intend for it
 
 ---
 
-<div align="center">
+<p align="center"><i>Built for the "I just need one thing done to this file" moment.</i></p>
 
-Built for the "I just need one thing done to this file" moment.
-
-</div>
+<p align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:FF00E5,50:8A2BE2,100:00F7FF&height=120&section=footer&animation=twinkling"/>
+</p>
